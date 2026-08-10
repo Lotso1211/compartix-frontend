@@ -8,10 +8,13 @@ export interface Usuario {
 }
 
 export interface AuthResponse {
-  accessToken: string;
-  refreshToken: string;
-  tokenType: string;
-  usuario: Usuario;
+  // accessToken/refreshToken/usuario vienen nulos cuando requiere2fa es true:
+  // el login todavia no esta completo hasta verificar el codigo.
+  accessToken?: string;
+  refreshToken?: string;
+  tokenType?: string;
+  usuario?: Usuario;
+  requiere2fa?: boolean;
 }
 
 export interface LoginRequest {

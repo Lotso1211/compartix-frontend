@@ -1,6 +1,6 @@
 import { Component, AfterViewInit, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -19,6 +19,7 @@ declare const google: any;
   imports: [
     CommonModule,
     ReactiveFormsModule,
+    FormsModule,
     RouterModule,
     MatFormFieldModule,
     MatInputModule,
@@ -36,6 +37,12 @@ export class LoginComponent implements AfterViewInit {
   loading = false;
   hidePassword = true;
   googleHabilitado = !!GOOGLE_CLIENT_ID;
+
+  // Paso 2 del login: código de verificación enviado por correo.
+  esperandoCodigo2fa = false;
+  emailPendiente2fa = '';
+  codigo2fa = '';
+  reenviando2fa = false;
 
   constructor(
     private fb: FormBuilder,
@@ -78,7 +85,15 @@ export class LoginComponent implements AfterViewInit {
   private loginConGoogle(idToken: string): void {
     this.loading = true;
     this.authService.loginConGoogle(idToken).subscribe({
-      next: () => this.router.navigate(['/app']),
+      next: (resp) => {
+        this.loading = false;
+        if (resp.requiere2fa) {
+          this.emailPendiente2fa = resp.usuario?.email || this.form.value.email;
+          this.esperandoCodigo2fa = true;
+        } else {
+          this.router.navigate(['/app']);
+        }
+      },
       error: (err) => {
         this.loading = false;
         this.snackBar.open(
@@ -95,8 +110,14 @@ export class LoginComponent implements AfterViewInit {
 
     this.loading = true;
     this.authService.login(this.form.value).subscribe({
-      next: () => {
-        this.router.navigate(['/app']);
+      next: (resp) => {
+        this.loading = false;
+        if (resp.requiere2fa) {
+          this.emailPendiente2fa = this.form.value.email;
+          this.esperandoCodigo2fa = true;
+        } else {
+          this.router.navigate(['/app']);
+        }
       },
       error: (err) => {
         this.loading = false;
@@ -107,5 +128,41 @@ export class LoginComponent implements AfterViewInit {
         );
       }
     });
+  }
+
+  confirmarCodigo2fa(): void {
+    if (!this.codigo2fa || this.codigo2fa.length !== 6) return;
+
+    this.loading = true;
+    this.authService.verificar2fa(this.emailPendiente2fa, this.codigo2fa).subscribe({
+      next: () => this.router.navigate(['/app']),
+      error: (err) => {
+        this.loading = false;
+        this.snackBar.open(
+          err.error?.message || 'Código inválido o expirado',
+          'Cerrar',
+          { duration: 3000, panelClass: ['snack-error'] }
+        );
+      }
+    });
+  }
+
+  reenviarCodigo2fa(): void {
+    this.reenviando2fa = true;
+    this.authService.reenviar2fa(this.emailPendiente2fa).subscribe({
+      next: () => {
+        this.reenviando2fa = false;
+        this.snackBar.open('Te enviamos un nuevo código', 'Cerrar', { duration: 3000 });
+      },
+      error: () => {
+        this.reenviando2fa = false;
+        this.snackBar.open('No se pudo reenviar el código', 'Cerrar', { duration: 3000 });
+      }
+    });
+  }
+
+  volverALogin(): void {
+    this.esperandoCodigo2fa = false;
+    this.codigo2fa = '';
   }
 }

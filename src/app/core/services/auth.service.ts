@@ -27,14 +27,25 @@ export class AuthService {
 
   login(request: LoginRequest): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.apiUrl}/login`, request).pipe(
-      tap(response => this.guardarSesion(response))
+      tap(response => { if (!response.requiere2fa) this.guardarSesion(response); })
     );
   }
 
   loginConGoogle(idToken: string): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.apiUrl}/google`, { idToken }).pipe(
+      tap(response => { if (!response.requiere2fa) this.guardarSesion(response); })
+    );
+  }
+
+  /** Segundo paso del login cuando el backend pide codigo de verificacion por correo. */
+  verificar2fa(email: string, codigo: string): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${this.apiUrl}/verificar-2fa`, { email, codigo }).pipe(
       tap(response => this.guardarSesion(response))
     );
+  }
+
+  reenviar2fa(email: string): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/reenviar-2fa`, null, { params: { email } });
   }
 
   register(request: RegisterRequest): Observable<AuthResponse> {
@@ -54,11 +65,13 @@ export class AuthService {
     this.usuarioSubject.next(null);
   }
 
+  // Se llama solo cuando el login ya esta completo (requiere2fa=false), asi que
+  // accessToken/refreshToken/usuario siempre vienen presentes en ese caso.
   private guardarSesion(response: AuthResponse): void {
-    localStorage.setItem('accessToken', response.accessToken);
-    localStorage.setItem('refreshToken', response.refreshToken);
+    localStorage.setItem('accessToken', response.accessToken!);
+    localStorage.setItem('refreshToken', response.refreshToken!);
     localStorage.setItem('usuario', JSON.stringify(response.usuario));
-    this.usuarioSubject.next(response.usuario);
+    this.usuarioSubject.next(response.usuario ?? null);
   }
 
   getUsuarioActual(): Usuario | null {

@@ -35,62 +35,101 @@
   <div class="auth-right">
     <div class="auth-card animate-fadeInUp">
 
-      <div class="auth-header">
-        <h1>Bienvenido</h1>
-        <p>Ingresa a tu cuenta para continuar</p>
-      </div>
+      <ng-container *ngIf="!esperandoCodigo2fa">
 
-      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+        <div class="auth-header">
+          <h1>Bienvenido</h1>
+          <p>Ingresa a tu cuenta para continuar</p>
+        </div>
 
-        <mat-form-field appearance="outline" class="w-full">
-          <mat-label>Correo electrónico</mat-label>
-          <input matInput formControlName="email" type="email" placeholder="tu@email.com">
-          <mat-icon matPrefix>mail_outline</mat-icon>
-          <mat-error *ngIf="form.get('email')?.hasError('required')">
-            El email es obligatorio
-          </mat-error>
-          <mat-error *ngIf="form.get('email')?.hasError('email')">
-            Email no válido
-          </mat-error>
-        </mat-form-field>
+        <form [formGroup]="form" (ngSubmit)="onSubmit()">
 
-        <mat-form-field appearance="outline" class="w-full">
-          <mat-label>Contraseña</mat-label>
-          <input matInput formControlName="password"
-                 [type]="hidePassword ? 'password' : 'text'"
-                 placeholder="••••••">
-          <mat-icon matPrefix>lock_outline</mat-icon>
-          <button mat-icon-button matSuffix type="button"
-                  (click)="hidePassword = !hidePassword">
-            <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Correo electrónico</mat-label>
+            <input matInput formControlName="email" type="email" placeholder="tu@email.com">
+            <mat-icon matPrefix>mail_outline</mat-icon>
+            <mat-error *ngIf="form.get('email')?.hasError('required')">
+              El email es obligatorio
+            </mat-error>
+            <mat-error *ngIf="form.get('email')?.hasError('email')">
+              Email no válido
+            </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Contraseña</mat-label>
+            <input matInput formControlName="password"
+                   [type]="hidePassword ? 'password' : 'text'"
+                   placeholder="••••••">
+            <mat-icon matPrefix>lock_outline</mat-icon>
+            <button mat-icon-button matSuffix type="button"
+                    (click)="hidePassword = !hidePassword">
+              <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+            </button>
+            <mat-error *ngIf="form.get('password')?.hasError('required')">
+              La contraseña es obligatoria
+            </mat-error>
+            <mat-error *ngIf="form.get('password')?.hasError('minlength')">
+              Mínimo 6 caracteres
+            </mat-error>
+          </mat-form-field>
+
+          <button class="btn-primary w-full submit-btn" type="submit" [disabled]="loading">
+            <mat-spinner diameter="20" *ngIf="loading"></mat-spinner>
+            <mat-icon *ngIf="!loading">login</mat-icon>
+            <span>{{ loading ? 'Ingresando...' : 'Ingresar' }}</span>
           </button>
-          <mat-error *ngIf="form.get('password')?.hasError('required')">
-            La contraseña es obligatoria
-          </mat-error>
-          <mat-error *ngIf="form.get('password')?.hasError('minlength')">
-            Mínimo 6 caracteres
-          </mat-error>
+
+        </form>
+
+        <div class="auth-divider" *ngIf="googleHabilitado">
+          <span>o</span>
+        </div>
+
+        <div id="googleBtn" class="google-btn-container" *ngIf="googleHabilitado"></div>
+
+        <div class="auth-footer">
+          <p>¿No tienes cuenta?
+            <a routerLink="/auth/register" class="link">Regístrate aquí</a>
+          </p>
+        </div>
+
+      </ng-container>
+
+      <!-- PASO 2FA: codigo de verificacion enviado por correo -->
+      <ng-container *ngIf="esperandoCodigo2fa">
+
+        <div class="auth-header">
+          <h1>Verifica tu identidad</h1>
+          <p>Te enviamos un código de 6 dígitos a <strong>{{ emailPendiente2fa }}</strong></p>
+        </div>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Código de verificación</mat-label>
+          <input matInput [(ngModel)]="codigo2fa" [ngModelOptions]="{standalone: true}"
+                 maxlength="6" inputmode="numeric" placeholder="123456"
+                 (keyup.enter)="confirmarCodigo2fa()">
+          <mat-icon matPrefix>pin</mat-icon>
         </mat-form-field>
 
-        <button class="btn-primary w-full submit-btn" type="submit" [disabled]="loading">
+        <button class="btn-primary w-full submit-btn" type="button"
+                [disabled]="loading || codigo2fa.length !== 6"
+                (click)="confirmarCodigo2fa()">
           <mat-spinner diameter="20" *ngIf="loading"></mat-spinner>
-          <mat-icon *ngIf="!loading">login</mat-icon>
-          <span>{{ loading ? 'Ingresando...' : 'Ingresar' }}</span>
+          <mat-icon *ngIf="!loading">verified</mat-icon>
+          <span>{{ loading ? 'Verificando...' : 'Confirmar código' }}</span>
         </button>
 
-      </form>
+        <div class="auth-footer">
+          <p>¿No te llegó?
+            <a class="link" (click)="!reenviando2fa && reenviarCodigo2fa()">
+              {{ reenviando2fa ? 'Enviando...' : 'Reenviar código' }}
+            </a>
+          </p>
+          <p><a class="link" (click)="volverALogin()">← Volver</a></p>
+        </div>
 
-      <div class="auth-divider" *ngIf="googleHabilitado">
-        <span>o</span>
-      </div>
-
-      <div id="googleBtn" class="google-btn-container" *ngIf="googleHabilitado"></div>
-
-      <div class="auth-footer">
-        <p>¿No tienes cuenta?
-          <a routerLink="/auth/register" class="link">Regístrate aquí</a>
-        </p>
-      </div>
+      </ng-container>
 
     </div>
   </div>
