@@ -1,0 +1,196 @@
+<div class="ia-wrapper">
+
+  <!-- NAVBAR -->
+  <nav class="ia-navbar">
+    <button class="icon-btn" (click)="volver()">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <div class="ia-navbar-title">
+      <mat-icon class="ia-icon">smart_toy</mat-icon>
+      <span>Asistente IA — Compartix</span>
+    </div>
+    <button class="btn-metricas" (click)="irAMetricas()" title="Métricas del modelo">
+      <mat-icon>insights</mat-icon> Métricas
+    </button>
+  </nav>
+
+  <!-- TABS -->
+  <mat-tab-group class="ia-tabs" animationDuration="200ms">
+
+    <!-- ── TAB 1: CHAT ── -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon>chat</mat-icon>&nbsp; Consultas
+      </ng-template>
+
+      <div class="chat-layout">
+
+        <!-- Mensajes -->
+        <div class="chat-messages" #chatContainer>
+          <div *ngFor="let msg of mensajes"
+               class="mensaje"
+               [class.mensaje-usuario]="msg.tipo === 'usuario'"
+               [class.mensaje-ia]="msg.tipo === 'ia'"
+               [class.mensaje-error]="msg.tipo === 'error'">
+
+            <div class="mensaje-avatar" *ngIf="msg.tipo !== 'usuario'">
+              <mat-icon *ngIf="msg.tipo === 'ia'">smart_toy</mat-icon>
+              <mat-icon *ngIf="msg.tipo === 'error'">error_outline</mat-icon>
+            </div>
+
+            <div class="mensaje-burbuja">
+              <p [innerHTML]="msg.texto | iaMarkdown"></p>
+              <div class="mensaje-meta">
+                <span class="hora">{{ msg.hora | date:'HH:mm' }}</span>
+                <span class="confianza" *ngIf="msg.confianza">
+                  {{ (msg.confianza * 100).toFixed(0) }}% confianza
+                </span>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Typing indicator -->
+          <div class="mensaje mensaje-ia" *ngIf="loadingChat">
+            <div class="mensaje-avatar"><mat-icon>smart_toy</mat-icon></div>
+            <div class="mensaje-burbuja typing">
+              <span></span><span></span><span></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Input -->
+        <div class="chat-input-area">
+          <div class="chat-sugerencias" *ngIf="esDirectiva">
+            <button class="sugerencia-btn" (click)="pregunta='¿Cuál es el saldo del grupo?'">
+              <mat-icon>payments</mat-icon> Saldo del grupo
+            </button>
+            <button class="sugerencia-btn" (click)="pregunta='¿Quién tiene multas?'">
+              <mat-icon>gavel</mat-icon> Multas pendientes
+            </button>
+            <button class="sugerencia-btn" (click)="pregunta='¿Quiénes son los miembros?'">
+              <mat-icon>groups</mat-icon> Ver miembros
+            </button>
+            <button class="sugerencia-btn" (click)="pregunta='¿Quién ha aportado más?'">
+              <mat-icon>emoji_events</mat-icon> Ranking aportes
+            </button>
+          </div>
+
+          <div class="chat-sugerencias" *ngIf="!esDirectiva">
+            <button class="sugerencia-btn" (click)="pregunta='¿Cuál es mi saldo?'">
+              <mat-icon>payments</mat-icon> Mi saldo
+            </button>
+            <button class="sugerencia-btn" (click)="pregunta='¿Tengo multas pendientes?'">
+              <mat-icon>gavel</mat-icon> Mis multas
+            </button>
+            <button class="sugerencia-btn" (click)="pregunta='¿Cuánto he aportado?'">
+              <mat-icon>account_balance_wallet</mat-icon> Mis aportes
+            </button>
+            <button class="sugerencia-btn" (click)="pregunta='¿Tengo cuotas pendientes?'">
+              <mat-icon>event</mat-icon> Mis cuotas
+            </button>
+          </div>
+
+          <div class="chat-input-row">
+            <textarea
+              [(ngModel)]="pregunta"
+              (keydown)="onEnter($event)"
+              placeholder="Escribe tu pregunta... (Enter para enviar)"
+              rows="1"
+              class="chat-input"
+              [disabled]="loadingChat">
+            </textarea>
+            <button class="btn-send" (click)="enviarPregunta()"
+                    [disabled]="!pregunta.trim() || loadingChat">
+              <mat-icon>send</mat-icon>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </mat-tab>
+
+    <!-- ── TAB 2: ESCANEO (solo Directiva) ── -->
+    <mat-tab *ngIf="esDirectiva">
+      <ng-template mat-tab-label>
+        <mat-icon>document_scanner</mat-icon>&nbsp; Escanear Factura
+      </ng-template>
+
+      <div class="escaneo-layout">
+
+        <!-- Upload zone -->
+        <div class="upload-zone" (click)="fileInput.click()"
+             [class.tiene-imagen]="imagenPreview">
+          <input #fileInput type="file" accept="image/*" capture="environment"
+                 (change)="seleccionarImagen($event)" style="display:none">
+
+          <div *ngIf="!imagenPreview" class="upload-placeholder">
+            <mat-icon>photo_camera</mat-icon>
+            <p>Toca para tomar foto o subir imagen de la factura</p>
+            <small>JPG, PNG — desde cámara o galería</small>
+          </div>
+
+          <img *ngIf="imagenPreview" [src]="imagenPreview"
+               alt="Factura" class="imagen-preview">
+        </div>
+
+        <!-- Botones acción -->
+        <div class="escaneo-acciones" *ngIf="imagenSeleccionada">
+          <button class="btn-secondary" (click)="limpiarEscaneo()">
+            <mat-icon>clear</mat-icon> Limpiar
+          </button>
+          <button class="btn-primary" (click)="escanearFactura()" [disabled]="loadingEscaneo">
+            <mat-spinner diameter="18" *ngIf="loadingEscaneo"></mat-spinner>
+            <mat-icon *ngIf="!loadingEscaneo">analytics</mat-icon>
+            {{ loadingEscaneo ? 'Analizando...' : 'Analizar factura' }}
+          </button>
+        </div>
+
+        <!-- Resultado -->
+        <div class="resultado-card" *ngIf="resultadoEscaneo">
+          <h3>Datos extraídos</h3>
+          <p class="resultado-hint">Revisa y edita los datos antes de confirmar el gasto.</p>
+
+          <form [formGroup]="formGasto" class="form-gasto">
+
+            <div class="form-group">
+              <label>Descripción *</label>
+              <input type="text" formControlName="descripcion"
+                     placeholder="Descripción del gasto" class="form-input">
+              <span class="field-error"
+                    *ngIf="formGasto.get('descripcion')?.hasError('required') && formGasto.get('descripcion')?.touched">
+                Obligatorio
+              </span>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Monto *</label>
+                <input type="number" formControlName="monto"
+                       placeholder="0.00" class="form-input">
+                <span class="field-error"
+                      *ngIf="formGasto.get('monto')?.invalid && formGasto.get('monto')?.touched">
+                  Monto inválido
+                </span>
+              </div>
+              <div class="form-group">
+                <label>Fecha *</label>
+                <input type="date" formControlName="fecha" class="form-input">
+              </div>
+            </div>
+
+            <button class="btn-primary w-full" type="button" (click)="confirmarGasto()"
+                    [disabled]="guardandoGasto">
+              <mat-icon>check_circle</mat-icon>
+              Confirmar y registrar gasto
+            </button>
+
+          </form>
+        </div>
+
+      </div>
+    </mat-tab>
+
+  </mat-tab-group>
+
+</div>

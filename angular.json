@@ -46,11 +46,17 @@
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "4kB",
-                  "maximumError": "8kB"
+                  "maximumWarning": "32kB",
+                  "maximumError": "48kB"
                 }
               ],
-              "outputHashing": "all"
+              "outputHashing": "all",
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.prod.ts"
+                }
+              ]
             },
             "development": {
               "optimization": false,
@@ -62,6 +68,9 @@
         },
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
+          "options": {
+            "host": "0.0.0.0"
+          },
           "configurations": {
             "production": {
               "buildTarget": "compartix-frontend:build:production"
@@ -98,5 +107,8 @@
         }
       }
     }
+  },
+  "cli": {
+    "analytics": "27aefa79-1428-4d67-8094-ea2c2658b921"
   }
 }

@@ -1,0 +1,251 @@
+<div class="dashboard-wrapper">
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="navbar-left">
+      <div class="logo">
+        <span class="logo-icon">⬡</span>
+        <span class="logo-text">Comparti<span class="logo-x">X</span></span>
+      </div>
+    </div>
+
+    <div class="navbar-right">
+      <button class="icon-btn" (click)="toggleDarkMode()" [title]="darkMode ? 'Modo claro' : 'Modo oscuro'">
+        <mat-icon>{{ darkMode ? 'light_mode' : 'dark_mode' }}</mat-icon>
+      </button>
+
+      <!-- NOTIFICACIONES -->
+      <div class="noti-wrapper">
+        <button class="icon-btn noti-btn" (click)="toggleNotificaciones()" title="Notificaciones">
+          <mat-icon>notifications</mat-icon>
+          <span class="noti-badge" *ngIf="noLeidas > 0">{{ noLeidas > 99 ? '99+' : noLeidas }}</span>
+        </button>
+
+        <div class="noti-panel" *ngIf="showNotificaciones">
+          <div class="noti-panel-header">
+            <h4>Notificaciones</h4>
+            <button class="noti-link" *ngIf="noLeidas > 0" (click)="marcarTodasLeidas()">
+              Marcar todas leídas
+            </button>
+          </div>
+
+          <div class="noti-loading" *ngIf="loadingNotis">
+            <mat-spinner diameter="28"></mat-spinner>
+          </div>
+
+          <div class="noti-empty" *ngIf="!loadingNotis && notificaciones.length === 0">
+            <mat-icon>notifications_none</mat-icon>
+            <p>No tienes notificaciones</p>
+          </div>
+
+          <div class="noti-list" *ngIf="!loadingNotis && notificaciones.length > 0">
+            <div class="noti-item" *ngFor="let n of notificaciones"
+                 [class.no-leida]="!n.leida" (click)="marcarLeida(n)">
+              <div class="noti-icon" [attr.data-tipo]="n.tipo">
+                <mat-icon>{{ iconoNoti(n.tipo) }}</mat-icon>
+              </div>
+              <div class="noti-content">
+                <span class="noti-titulo">{{ n.titulo }}</span>
+                <span class="noti-mensaje">{{ n.mensaje }}</span>
+                <span class="noti-fecha">{{ n.creadoEn | date:'dd/MM/yyyy HH:mm' }}</span>
+              </div>
+              <span class="noti-dot" *ngIf="!n.leida"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="user-menu">
+      <div class="avatar" *ngIf="usuario">
+        {{ getInitiales(usuario.nombre, usuario.apellido) }}
+      </div>
+      <div class="user-info" *ngIf="usuario">
+        <span class="user-name">{{ usuario.nombre }} {{ usuario.apellido }}</span>
+        <span class="user-email">{{ usuario.email }}</span>
+      </div>
+      <button class="icon-btn" (click)="irAPerfil()" title="Mi perfil">
+        <mat-icon>manage_accounts</mat-icon>
+      </button>
+      <button class="icon-btn danger" (click)="logout()" title="Cerrar sesión">
+        <mat-icon>logout</mat-icon>
+      </button>
+    </div>
+    </div>
+  </nav>
+
+  <!-- CONTENIDO PRINCIPAL -->
+  <main class="main-content">
+
+    <!-- HEADER -->
+    <div class="page-header animate-fadeInUp">
+      <div>
+        <h1>Mis Grupos</h1>
+        <p class="text-muted">Gestiona todos tus grupos desde aquí</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn-secondary" (click)="showUnirse = true">
+          <mat-icon>group_add</mat-icon>
+          Unirme a grupo
+        </button>
+        <button class="btn-primary" (click)="showCrearGrupo = true">
+          <mat-icon>add</mat-icon>
+          Crear grupo
+        </button>
+      </div>
+    </div>
+
+    <!-- LOADING (skeletons) -->
+    <div class="grupos-grid" *ngIf="loading">
+      <div class="grupo-card skeleton-card" *ngFor="let s of [1,2,3,4,5,6]">
+        <div class="sk sk-header"></div>
+        <div class="grupo-card-body">
+          <div class="sk sk-line lg"></div>
+          <div class="sk sk-line md"></div>
+          <div class="sk sk-line sm"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EMPTY STATE -->
+    <div class="empty-state animate-fadeInUp" *ngIf="!loading && grupos.length === 0">
+      <mat-icon class="empty-icon">groups</mat-icon>
+      <h2>Aún no tienes grupos</h2>
+      <p>Crea tu primer grupo o únete a uno con un código de invitación</p>
+      <div class="empty-actions">
+        <button class="btn-primary" (click)="showCrearGrupo = true">
+          <mat-icon>add</mat-icon>
+          Crear mi primer grupo
+        </button>
+        <button class="btn-secondary" (click)="showUnirse = true">
+          <mat-icon>group_add</mat-icon>
+          Unirme con código
+        </button>
+      </div>
+    </div>
+
+    <!-- GRID DE GRUPOS -->
+    <div class="grupos-grid" *ngIf="!loading && grupos.length > 0">
+      <div class="grupo-card animate-fadeInUp animate-delay-{{i+1}}"
+           *ngFor="let grupo of grupos; let i = index"
+           (click)="irAGrupo(grupo)">
+
+        <div class="grupo-card-header" [style.background]="getColorGrupo(i)">
+          <div class="grupo-avatar">
+            {{ grupo.nombre.charAt(0).toUpperCase() }}
+          </div>
+          <div class="grupo-badge" [class.activo]="grupo.activo">
+            {{ grupo.activo ? 'Activo' : 'Inactivo' }}
+          </div>
+        </div>
+
+        <div class="grupo-card-body">
+          <h3>{{ grupo.nombre }}</h3>
+          <p class="grupo-desc">{{ grupo.descripcion || 'Sin descripción' }}</p>
+
+          <div class="grupo-meta">
+            <div class="meta-item">
+              <mat-icon>payments</mat-icon>
+              <span>{{ grupo.moneda }} {{ grupo.cuotaBase | number:'1.0-2' }}</span>
+            </div>
+            <div class="meta-item">
+              <mat-icon>vpn_key</mat-icon>
+              <span>{{ grupo.codigoInvitacion }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="grupo-card-footer">
+          <span class="ver-mas">Ver detalles <mat-icon>arrow_forward</mat-icon></span>
+          <button class="btn-ia" (click)="$event.stopPropagation(); irAIa(grupo.id)" title="Asistente IA">
+            <mat-icon>auto_awesome</mat-icon> IA
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+</div>
+
+<!-- MODAL CREAR GRUPO -->
+<div class="modal-overlay" *ngIf="showCrearGrupo" (click)="showCrearGrupo = false">
+  <div class="modal animate-fadeInUp" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Crear nuevo grupo</h2>
+      <button class="icon-btn" (click)="showCrearGrupo = false">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Nombre del grupo *</label>
+        <input type="text" [(ngModel)]="nombreGrupo" placeholder="Ej: Comparsa Los Tigres 2025" class="form-input">
+      </div>
+      <div class="form-group">
+        <label>Descripción (opcional)</label>
+        <textarea [(ngModel)]="descripcionGrupo" placeholder="Describe tu grupo..." class="form-input" rows="3"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Cuota base</label>
+          <input type="number" [(ngModel)]="cuotaBase" placeholder="0.00" class="form-input">
+        </div>
+        <div class="form-group">
+          <label>Moneda</label>
+          <select [(ngModel)]="moneda" class="form-input">
+            <option value="BOB">BOB - Bolivianos</option>
+            <option value="USD">USD - Dólares</option>
+            <option value="PEN">PEN - Soles</option>
+            <option value="ARS">ARS - Pesos Arg.</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="showCrearGrupo = false">Cancelar</button>
+      <button class="btn-primary" (click)="crearGrupo()" [disabled]="loadingAction">
+        <mat-spinner diameter="18" *ngIf="loadingAction"></mat-spinner>
+        <mat-icon *ngIf="!loadingAction">add</mat-icon>
+        {{ loadingAction ? 'Creando...' : 'Crear grupo' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL UNIRSE -->
+<div class="modal-overlay" *ngIf="showUnirse" (click)="showUnirse = false">
+  <div class="modal animate-fadeInUp" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Unirme a un grupo</h2>
+      <button class="icon-btn" (click)="showUnirse = false">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Código de invitación *</label>
+        <input type="text" [(ngModel)]="codigoInvitacion"
+               placeholder="Ej: ABC12345"
+               class="form-input codigo-input"
+               (input)="codigoInvitacion = codigoInvitacion.toUpperCase()">
+      </div>
+      <p class="hint-text">
+        <mat-icon>info_outline</mat-icon>
+        Pide el código al administrador del grupo
+      </p>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="showUnirse = false">Cancelar</button>
+      <button class="btn-primary" (click)="unirseGrupo()" [disabled]="loadingAction">
+        <mat-spinner diameter="18" *ngIf="loadingAction"></mat-spinner>
+        <mat-icon *ngIf="!loadingAction">group_add</mat-icon>
+        {{ loadingAction ? 'Uniéndome...' : 'Unirme' }}
+      </button>
+    </div>
+  </div>
+</div>

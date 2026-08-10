@@ -1,1 +1,298 @@
-/* You can add global styles to this file, and also import other style files */
+@use '@angular/material' as mat;
+
+// ============================================================
+// TEMA DE ANGULAR MATERIAL — verde de marca (reemplaza el
+// prebuilt "indigo-pink" que dejaba moradas cosas como el
+// ink-bar de las pestañas, los spinners y los ripples).
+// ============================================================
+$compartix-green: (
+  50: #E5F2EE,
+  100: #BFDFD3,
+  200: #96CBB6,
+  300: #6DB699,
+  400: #4DA684,
+  500: #2E9770,
+  600: #298967,
+  700: #0E6B4F,
+  800: #0B5A42,
+  900: #073F2E,
+  A100: #8AF5C9,
+  A200: #57EFB0,
+  A400: #24E997,
+  A700: #0AD37F,
+  contrast: (
+    50: rgba(black, 0.87), 100: rgba(black, 0.87), 200: rgba(black, 0.87), 300: rgba(black, 0.87),
+    400: white, 500: white, 600: white, 700: white, 800: white, 900: white,
+    A100: rgba(black, 0.87), A200: rgba(black, 0.87), A400: rgba(black, 0.87), A700: white,
+  )
+);
+
+$compartix-primary: mat.m2-define-palette($compartix-green, 700, 300, 900);
+$compartix-warn: mat.m2-define-palette(mat.$m2-red-palette);
+$compartix-theme: mat.m2-define-light-theme((
+  color: (
+    primary: $compartix-primary,
+    accent: $compartix-primary,
+    warn: $compartix-warn,
+  ),
+));
+
+@include mat.all-component-themes($compartix-theme);
+
+// ============================================================
+// FUENTES
+// ============================================================
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+
+// ============================================================
+// VARIABLES CSS - LIGHT MODE
+// ============================================================
+:root {
+  --primary: #0E6B4F;
+  --primary-light: #16875F;
+  --primary-dark: #0A4C38;
+  --accent: #6B8F7F;
+  --accent-light: #8AA99B;
+  --success: #10B981;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+  --danger-light: #FEE2E2;
+
+  // Light mode colors
+  --bg-primary: #F8FAFC;
+  --bg-secondary: #FFFFFF;
+  --bg-card: #FFFFFF;
+  --bg-sidebar: #FFFFFF;
+  --text-primary: #1E293B;
+  --text-secondary: #64748B;
+  --text-muted: #94A3B8;
+  --border: #E2E8F0;
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.12);
+  --radius: 16px;
+  --radius-sm: 8px;
+  --radius-lg: 24px;
+}
+
+// ============================================================
+// DARK MODE
+// ============================================================
+[data-theme='dark'] {
+  --bg-primary: #0F172A;
+  --bg-secondary: #1E293B;
+  --bg-card: #1E293B;
+  --bg-sidebar: #0F172A;
+  --text-primary: #F1F5F9;
+  --text-secondary: #94A3B8;
+  --text-muted: #475569;
+  --border: #2D3748;
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.4);
+}
+
+// ============================================================
+// RESET Y BASE
+// ============================================================
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  font-family: 'Poppins', sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+// ============================================================
+// SCROLLBAR PERSONALIZADO
+// ============================================================
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-dark);
+}
+
+// ============================================================
+// UTILIDADES GLOBALES
+// ============================================================
+.card {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  padding: 24px;
+  transition: box-shadow 0.2s ease;
+
+  &:hover {
+    box-shadow: var(--shadow-lg);
+  }
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+
+  &.badge-success { background: rgba(16, 185, 129, 0.15); color: #10B981; }
+  &.badge-warning { background: rgba(245, 158, 11, 0.15); color: #F59E0B; }
+  &.badge-danger  { background: rgba(239, 68, 68, 0.15);  color: #EF4444; }
+  &.badge-primary { background: rgba(14, 107, 79, 0.14);  color: var(--primary); }
+  &.badge-info    { background: rgba(71, 85, 105, 0.14);  color: #475569; }
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 12px 24px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(14, 107, 79, 0.35);
+  }
+  &:active { transform: translateY(0); }
+  &:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+}
+
+.btn-secondary {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 24px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  &:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, #EF4444, #DC2626);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 12px 24px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(239, 68, 68, 0.4);
+  }
+}
+
+.text-primary-color { color: var(--primary); }
+.text-success { color: var(--success); }
+.text-warning { color: var(--warning); }
+.text-danger  { color: var(--danger); }
+.text-muted   { color: var(--text-muted); }
+
+.flex { display: flex; }
+.flex-col { display: flex; flex-direction: column; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.justify-center { justify-content: center; }
+.gap-4 { gap: 4px; }
+.gap-8 { gap: 8px; }
+.gap-12 { gap: 12px; }
+.gap-16 { gap: 16px; }
+.gap-24 { gap: 24px; }
+.w-full { width: 100%; }
+.h-full { height: 100%; }
+
+// ============================================================
+// ANGULAR MATERIAL OVERRIDES
+// ============================================================
+.mat-mdc-form-field {
+  width: 100%;
+}
+
+.mdc-text-field {
+  border-radius: var(--radius-sm) !important;
+}
+
+.mat-mdc-snack-bar-container {
+  border-radius: var(--radius-sm) !important;
+}
+
+// ============================================================
+// ANIMACIONES
+// ============================================================
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.05); }
+}
+
+.animate-fadeInUp  { animation: fadeInUp 0.4s ease forwards; }
+.animate-fadeIn    { animation: fadeIn 0.3s ease forwards; }
+.animate-slideInLeft { animation: slideInLeft 0.3s ease forwards; }
+
+// Staggered animations
+@for $i from 1 through 10 {
+  .animate-delay-#{$i} {
+    animation-delay: #{$i * 0.1}s;
+    opacity: 0;
+  }
+}
+
+// ============================================================
+// RESPONSIVE
+// ============================================================
+@media (max-width: 768px) {
+  .card { padding: 16px; }
+  .btn-primary, .btn-secondary { padding: 10px 18px; font-size: 13px; }
+}/* You can add global styles to this file, and also import other style files */

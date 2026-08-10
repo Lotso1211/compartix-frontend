@@ -1,0 +1,98 @@
+<div class="auth-wrapper">
+
+  <!-- Lado izquierdo decorativo -->
+  <div class="auth-left">
+    <div class="auth-left-content">
+      <div class="logo-big">
+        <span class="logo-icon">⬡</span>
+        <span class="logo-text">Comparti<span class="logo-x">X</span></span>
+      </div>
+      <h2>Gestiona tu grupo de forma inteligente</h2>
+      <p>Controla aportes, gastos y multas con total transparencia.</p>
+
+      <div class="features-list">
+        <div class="feature-item">
+          <mat-icon class="feature-icon">account_balance_wallet</mat-icon>
+          <span>Kardex individual automatizado</span>
+        </div>
+        <div class="feature-item">
+          <mat-icon class="feature-icon">bar_chart</mat-icon>
+          <span>Reportes y gráficos en tiempo real</span>
+        </div>
+        <div class="feature-item">
+          <mat-icon class="feature-icon">auto_awesome</mat-icon>
+          <span>Asistente IA para registrar gastos</span>
+        </div>
+        <div class="feature-item">
+          <mat-icon class="feature-icon">notifications</mat-icon>
+          <span>Notificaciones y recordatorios</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lado derecho - formulario -->
+  <div class="auth-right">
+    <div class="auth-card animate-fadeInUp">
+
+      <div class="auth-header">
+        <h1>Bienvenido</h1>
+        <p>Ingresa a tu cuenta para continuar</p>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Correo electrónico</mat-label>
+          <input matInput formControlName="email" type="email" placeholder="tu@email.com">
+          <mat-icon matPrefix>mail_outline</mat-icon>
+          <mat-error *ngIf="form.get('email')?.hasError('required')">
+            El email es obligatorio
+          </mat-error>
+          <mat-error *ngIf="form.get('email')?.hasError('email')">
+            Email no válido
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Contraseña</mat-label>
+          <input matInput formControlName="password"
+                 [type]="hidePassword ? 'password' : 'text'"
+                 placeholder="••••••">
+          <mat-icon matPrefix>lock_outline</mat-icon>
+          <button mat-icon-button matSuffix type="button"
+                  (click)="hidePassword = !hidePassword">
+            <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+          </button>
+          <mat-error *ngIf="form.get('password')?.hasError('required')">
+            La contraseña es obligatoria
+          </mat-error>
+          <mat-error *ngIf="form.get('password')?.hasError('minlength')">
+            Mínimo 6 caracteres
+          </mat-error>
+        </mat-form-field>
+
+        <button class="btn-primary w-full submit-btn" type="submit" [disabled]="loading">
+          <mat-spinner diameter="20" *ngIf="loading"></mat-spinner>
+          <mat-icon *ngIf="!loading">login</mat-icon>
+          <span>{{ loading ? 'Ingresando...' : 'Ingresar' }}</span>
+        </button>
+
+      </form>
+
+      <div class="auth-divider" *ngIf="googleHabilitado">
+        <span>o</span>
+      </div>
+
+      <div id="googleBtn" class="google-btn-container" *ngIf="googleHabilitado"></div>
+
+      <div class="auth-footer">
+        <p>¿No tienes cuenta?
+          <a routerLink="/auth/register" class="link">Regístrate aquí</a>
+        </p>
+      </div>
+
+    </div>
+  </div>
+
+</div>

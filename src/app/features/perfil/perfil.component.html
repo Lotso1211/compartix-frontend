@@ -1,0 +1,189 @@
+<div class="perfil-wrapper">
+
+  <div class="perfil-card animate-fadeInUp">
+
+    <!-- Header -->
+    <div class="perfil-header">
+      <button mat-icon-button (click)="volver()" class="btn-back">
+        <mat-icon>arrow_back</mat-icon>
+      </button>
+      <div class="perfil-info">
+        <div class="avatar-foto">
+          <img *ngIf="usuario?.fotoUrl" [src]="usuario?.fotoUrl" alt="Foto de perfil">
+          <span *ngIf="!usuario?.fotoUrl" class="avatar-iniciales">{{ iniciales }}</span>
+
+          <label class="avatar-edit" [class.subiendo]="subiendoFoto">
+            <mat-icon *ngIf="!subiendoFoto">photo_camera</mat-icon>
+            <mat-spinner *ngIf="subiendoFoto" diameter="18"></mat-spinner>
+            <input type="file" accept="image/*" (change)="onFotoSeleccionada($event)" hidden>
+          </label>
+        </div>
+        <div>
+          <h1>{{ usuario?.nombre }} {{ usuario?.apellido }}</h1>
+          <p>{{ usuario?.email }}</p>
+        </div>
+      </div>
+    </div>
+
+    <mat-tab-group class="perfil-tabs" animationDuration="200ms">
+
+      <!-- ── TAB DATOS ── -->
+      <mat-tab label="Mis datos">
+        <div class="tab-pane">
+          <form [formGroup]="perfilForm" (ngSubmit)="guardarPerfil()">
+
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>Nombre</mat-label>
+              <input matInput formControlName="nombre" placeholder="Tu nombre">
+              <mat-icon matPrefix>person</mat-icon>
+              <mat-error *ngIf="perfilForm.get('nombre')?.hasError('required')">El nombre es obligatorio</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>Apellido</mat-label>
+              <input matInput formControlName="apellido" placeholder="Tu apellido">
+              <mat-icon matPrefix>badge</mat-icon>
+              <mat-error *ngIf="perfilForm.get('apellido')?.hasError('required')">El apellido es obligatorio</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>Teléfono</mat-label>
+              <input matInput formControlName="telefono" placeholder="Ej: 70000000">
+              <mat-icon matPrefix>phone</mat-icon>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>Email</mat-label>
+              <input matInput [value]="usuario?.email" disabled>
+              <mat-icon matPrefix>email</mat-icon>
+              <mat-hint>El email no se puede modificar</mat-hint>
+            </mat-form-field>
+
+            <div class="form-actions">
+              <button class="btn-primary submit-btn" type="submit" [disabled]="loadingPerfil">
+                <mat-spinner diameter="20" *ngIf="loadingPerfil"></mat-spinner>
+                <mat-icon *ngIf="!loadingPerfil">save</mat-icon>
+                <span>{{ loadingPerfil ? 'Guardando...' : 'Guardar cambios' }}</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </mat-tab>
+
+      <!-- ── TAB SEGURIDAD ── -->
+      <mat-tab label="Seguridad">
+        <div class="tab-pane">
+          <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>Contraseña actual</mat-label>
+              <input matInput formControlName="passwordActual"
+                     [type]="hideActual ? 'password' : 'text'" placeholder="••••••••">
+              <mat-icon matPrefix>lock_outline</mat-icon>
+              <button mat-icon-button matSuffix type="button" (click)="hideActual = !hideActual">
+                <mat-icon>{{ hideActual ? 'visibility_off' : 'visibility' }}</mat-icon>
+              </button>
+              <mat-error *ngIf="form.get('passwordActual')?.hasError('required')">
+                La contraseña actual es obligatoria
+              </mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>Nueva contraseña</mat-label>
+              <input matInput formControlName="passwordNueva"
+                     [type]="hideNueva ? 'password' : 'text'" placeholder="••••••••"
+                     (focus)="passwordFocused = true" (blur)="passwordFocused = false">
+              <mat-icon matPrefix>lock_outline</mat-icon>
+              <button mat-icon-button matSuffix type="button" (click)="hideNueva = !hideNueva">
+                <mat-icon>{{ hideNueva ? 'visibility_off' : 'visibility' }}</mat-icon>
+              </button>
+              <mat-error *ngIf="form.get('passwordNueva')?.hasError('required')">
+                La nueva contraseña es obligatoria
+              </mat-error>
+              <mat-error *ngIf="form.get('passwordNueva')?.hasError('passwordWeak') && !form.get('passwordNueva')?.hasError('required')">
+                La contraseña no cumple los requisitos
+              </mat-error>
+            </mat-form-field>
+
+            <div class="password-checklist" *ngIf="showChecklist">
+              <p class="checklist-title">Requisitos de la contraseña:</p>
+              <div class="checklist-item" [class.valid]="passwordRules.minLength">
+                <mat-icon>{{ passwordRules.minLength ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+                <span>Mínimo 8 caracteres</span>
+              </div>
+              <div class="checklist-item" [class.valid]="passwordRules.hasUppercase">
+                <mat-icon>{{ passwordRules.hasUppercase ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+                <span>Al menos una letra mayúscula</span>
+              </div>
+              <div class="checklist-item" [class.valid]="passwordRules.hasSpecial">
+                <mat-icon>{{ passwordRules.hasSpecial ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+                <span>Al menos un carácter especial (!&#64;#$%...)</span>
+              </div>
+              <div class="checklist-item" [class.valid]="passwordRules.noQuotes">
+                <mat-icon>{{ passwordRules.noQuotes ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+                <span>Sin comillas simples o dobles</span>
+              </div>
+            </div>
+
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>Confirmar nueva contraseña</mat-label>
+              <input matInput formControlName="confirmarPassword"
+                     [type]="hideConfirmar ? 'password' : 'text'" placeholder="••••••••">
+              <mat-icon matPrefix>lock_outline</mat-icon>
+              <button mat-icon-button matSuffix type="button" (click)="hideConfirmar = !hideConfirmar">
+                <mat-icon>{{ hideConfirmar ? 'visibility_off' : 'visibility' }}</mat-icon>
+              </button>
+              <mat-error *ngIf="form.get('confirmarPassword')?.hasError('required')">
+                Confirma tu nueva contraseña
+              </mat-error>
+              <mat-error *ngIf="form.get('confirmarPassword')?.hasError('passwordMismatch')">
+                Las contraseñas no coinciden
+              </mat-error>
+            </mat-form-field>
+
+            <div class="form-actions">
+              <button class="btn-primary submit-btn" type="submit" [disabled]="loading">
+                <mat-spinner diameter="20" *ngIf="loading"></mat-spinner>
+                <mat-icon *ngIf="!loading">save</mat-icon>
+                <span>{{ loading ? 'Guardando...' : 'Cambiar contraseña' }}</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </mat-tab>
+
+      <!-- ── TAB ACTIVIDAD ── -->
+      <mat-tab label="Actividad">
+        <div class="tab-pane">
+          <div class="hist-loading" *ngIf="loadingHistorial">
+            <mat-spinner diameter="32"></mat-spinner>
+          </div>
+
+          <div class="hist-empty" *ngIf="!loadingHistorial && historial.length === 0">
+            <mat-icon>history</mat-icon>
+            <p>Aún no tienes actividad registrada</p>
+          </div>
+
+          <div class="hist-list" *ngIf="!loadingHistorial && historial.length > 0">
+            <div class="hist-item" *ngFor="let h of historial">
+              <div class="hist-icon" [attr.data-tipo]="h.tipo">
+                <mat-icon>{{ iconoActividad(h.tipo) }}</mat-icon>
+              </div>
+              <div class="hist-content">
+                <span class="hist-titulo">{{ h.titulo }}</span>
+                <span class="hist-mensaje">{{ h.mensaje }}</span>
+                <span class="hist-fecha">
+                  <span *ngIf="h.nombreGrupo">{{ h.nombreGrupo }} · </span>
+                  {{ h.creadoEn | date:'dd/MM/yyyy HH:mm' }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </mat-tab>
+
+    </mat-tab-group>
+
+  </div>
+
+</div>

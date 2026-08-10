@@ -1,0 +1,158 @@
+<div class="auth-wrapper">
+
+  <!-- Lado izquierdo decorativo -->
+  <div class="auth-left">
+    <div class="auth-left-content">
+      <div class="logo-big">
+        <span class="logo-icon">⬡</span>
+        <span class="logo-text">Comparti<span class="logo-x">X</span></span>
+      </div>
+      <h2>Únete y lleva el control de tu grupo</h2>
+      <p>Crea tu cuenta gratis y empieza a gestionar tus finanzas grupales hoy mismo.</p>
+
+      <div class="steps-list">
+        <div class="step-item">
+          <span class="step-number">1</span>
+          <div>
+            <strong>Crea tu cuenta</strong>
+            <p>Regístrate en segundos</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <span class="step-number">2</span>
+          <div>
+            <strong>Crea o únete a un grupo</strong>
+            <p>Usa el código de invitación</p>
+          </div>
+        </div>
+        <div class="step-item">
+          <span class="step-number">3</span>
+          <div>
+            <strong>Empieza a registrar</strong>
+            <p>Aportes, gastos y multas</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lado derecho - formulario -->
+  <div class="auth-right">
+    <div class="auth-card animate-fadeInUp">
+
+      <div class="auth-header">
+        <h1>Crear cuenta</h1>
+        <p>Completa los datos para registrarte</p>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+        <div class="row-2">
+          <mat-form-field appearance="outline">
+            <mat-label>Nombre</mat-label>
+            <input matInput formControlName="nombre" placeholder="Juan">
+            <mat-icon matPrefix>person_outline</mat-icon>
+            <mat-error *ngIf="form.get('nombre')?.hasError('required')">Obligatorio</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Apellido</mat-label>
+            <input matInput formControlName="apellido" placeholder="Pérez">
+            <mat-error *ngIf="form.get('apellido')?.hasError('required')">Obligatorio</mat-error>
+          </mat-form-field>
+        </div>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Correo electrónico</mat-label>
+          <input matInput formControlName="email" type="email" placeholder="tu@email.com">
+          <mat-icon matPrefix>mail_outline</mat-icon>
+          <mat-error *ngIf="form.get('email')?.hasError('required')">El email es obligatorio</mat-error>
+          <mat-error *ngIf="form.get('email')?.hasError('email')">Email no válido</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Teléfono (opcional)</mat-label>
+          <input matInput formControlName="telefono" placeholder="+591 70000000">
+          <mat-icon matPrefix>phone_outline</mat-icon>
+        </mat-form-field>
+
+        <!-- Campo contraseña -->
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Contraseña</mat-label>
+          <input matInput formControlName="password"
+                 [type]="hidePassword ? 'password' : 'text'"
+                 placeholder="••••••••"
+                 (focus)="passwordFocused = true"
+                 (blur)="passwordFocused = false">
+          <mat-icon matPrefix>lock_outline</mat-icon>
+          <button mat-icon-button matSuffix type="button" (click)="hidePassword = !hidePassword">
+            <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+          </button>
+          <mat-error *ngIf="form.get('password')?.hasError('required')">
+            La contraseña es obligatoria
+          </mat-error>
+        </mat-form-field>
+
+        <!-- Checklist de seguridad -->
+        <div class="password-checklist" *ngIf="showChecklist">
+          <p class="checklist-title">Requisitos de la contraseña:</p>
+          <div class="checklist-item" [class.valid]="passwordRules.minLength">
+            <mat-icon>{{ passwordRules.minLength ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+            <span>Mínimo 8 caracteres</span>
+          </div>
+          <div class="checklist-item" [class.valid]="passwordRules.hasUppercase">
+            <mat-icon>{{ passwordRules.hasUppercase ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+            <span>Al menos una letra mayúscula</span>
+          </div>
+          <div class="checklist-item" [class.valid]="passwordRules.hasSpecial">
+            <mat-icon>{{ passwordRules.hasSpecial ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+            <span>Al menos un carácter especial (!&#64;#$%...)</span>
+          </div>
+          <div class="checklist-item" [class.valid]="passwordRules.noQuotes">
+            <mat-icon>{{ passwordRules.noQuotes ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+            <span>Sin comillas simples o dobles</span>
+          </div>
+        </div>
+
+        <!-- Confirmar contraseña -->
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Confirmar contraseña</mat-label>
+          <input matInput formControlName="confirmarPassword"
+                 [type]="hideConfirmar ? 'password' : 'text'"
+                 placeholder="••••••••">
+          <mat-icon matPrefix>lock_outline</mat-icon>
+          <button mat-icon-button matSuffix type="button" (click)="hideConfirmar = !hideConfirmar">
+            <mat-icon>{{ hideConfirmar ? 'visibility_off' : 'visibility' }}</mat-icon>
+          </button>
+          <mat-error *ngIf="form.get('confirmarPassword')?.hasError('required')">
+            Confirma tu contraseña
+          </mat-error>
+          <mat-error *ngIf="form.get('confirmarPassword')?.hasError('passwordMismatch')">
+            Las contraseñas no coinciden
+          </mat-error>
+        </mat-form-field>
+
+        <button class="btn-primary w-full submit-btn" type="submit" [disabled]="loading">
+          <mat-spinner diameter="20" *ngIf="loading"></mat-spinner>
+          <mat-icon *ngIf="!loading">person_add</mat-icon>
+          <span>{{ loading ? 'Creando cuenta...' : 'Crear cuenta' }}</span>
+        </button>
+
+      </form>
+
+      <div class="auth-divider" *ngIf="googleHabilitado">
+        <span>o</span>
+      </div>
+
+      <div id="googleBtn" class="google-btn-container" *ngIf="googleHabilitado"></div>
+
+      <div class="auth-footer">
+        <p>¿Ya tienes cuenta?
+          <a routerLink="/auth/login" class="link">Inicia sesión aquí</a>
+        </p>
+      </div>
+
+    </div>
+  </div>
+
+</div>

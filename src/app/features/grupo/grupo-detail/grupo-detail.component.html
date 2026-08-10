@@ -1,0 +1,1314 @@
+<div class="grupo-wrapper">
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="navbar-left">
+      <button class="icon-btn" (click)="volver()">
+        <mat-icon>arrow_back</mat-icon>
+      </button>
+      <div class="logo">
+        <span class="logo-icon">⬡</span>
+        <span class="logo-text">Comparti<span class="logo-x">X</span></span>
+      </div>
+    </div>
+    <div class="navbar-right">
+      <button class="btn-ia-nav reportes" *ngIf="esDirectiva" (click)="irAReportes()" matTooltip="Reportes">
+        <mat-icon>bar_chart</mat-icon> Reportes
+      </button>
+      <button class="btn-ia-nav" (click)="irAIa()" matTooltip="Asistente IA">
+        <mat-icon>smart_toy</mat-icon> IA
+      </button>
+      <button class="icon-btn noti-btn" (click)="irANotificaciones()" matTooltip="Notificaciones">
+        <mat-icon>notifications</mat-icon>
+        <span class="noti-badge" *ngIf="notisNoLeidas > 0">{{ notisNoLeidas > 99 ? '99+' : notisNoLeidas }}</span>
+      </button>
+      <button class="icon-btn" (click)="toggleDarkMode()">
+        <mat-icon>{{ darkMode ? 'light_mode' : 'dark_mode' }}</mat-icon>
+      </button>
+      <div class="avatar" *ngIf="usuario">
+        {{ getInitiales(usuario.nombre, usuario.apellido) }}
+      </div>
+    </div>
+  </nav>
+
+  <!-- LOADING -->
+  <div class="loading-container" *ngIf="loading">
+    <mat-spinner diameter="48"></mat-spinner>
+    <p>Cargando grupo...</p>
+  </div>
+
+  <div class="main-content" *ngIf="!loading && grupo">
+
+    <!-- HEADER DEL GRUPO -->
+    <div class="grupo-header animate-fadeInUp">
+      <div class="grupo-header-left">
+        <div class="grupo-avatar-big">{{ grupo.nombre.charAt(0).toUpperCase() }}</div>
+        <div>
+          <div class="grupo-title-row">
+            <h1>{{ grupo.nombre }}</h1>
+            <span class="badge badge-success" *ngIf="grupo.activo">Activo</span>
+            <span class="badge badge-danger" *ngIf="!grupo.activo">Inactivo</span>
+            <span class="badge badge-primary">{{ rolUsuario }}</span>
+          </div>
+          <p class="text-muted">{{ grupo.descripcion || 'Sin descripción' }}</p>
+          <div class="codigo-row" (click)="copiarCodigo()" matTooltip="Clic para copiar">
+            <mat-icon>vpn_key</mat-icon>
+            <span>{{ grupo.codigoInvitacion }}</span>
+            <mat-icon class="copy-icon">content_copy</mat-icon>
+          </div>
+        </div>
+      </div>
+
+      <div class="grupo-acciones" *ngIf="esDirectiva">
+        <button class="btn-action aporte" (click)="abrirModal('aporte')">
+          <mat-icon>payments</mat-icon> Aporte
+        </button>
+        <button class="btn-action gasto-compartido" (click)="abrirModal('gastoCompartido')">
+          <mat-icon>handshake</mat-icon> Gasto Compartido
+        </button>
+        <button class="btn-action multa" (click)="abrirModal('multa')">
+          <mat-icon>gavel</mat-icon> Multa
+        </button>
+        <button class="btn-action gasto-individual" (click)="abrirModal('gastoIndividual')">
+          <mat-icon>shopping_bag</mat-icon> Gasto Individual
+        </button>
+        <button class="btn-action ingreso-directo" (click)="abrirModal('ingresoDirecto')">
+          <mat-icon>account_balance</mat-icon> Ingreso Directo
+        </button>
+        <button class="btn-action eliminar" (click)="confirmarEliminar()">
+          <mat-icon>delete_forever</mat-icon> Eliminar Grupo
+        </button>
+        <button class="btn-action pedido" (click)="abrirModal('pedido')">
+          <mat-icon>inventory_2</mat-icon> Nuevo Pedido
+        </button>
+        <button class="btn-action pago-prog" (click)="abrirModal('pagoProgramado')">
+          <mat-icon>event</mat-icon> Pago Programado
+        </button>
+        <button class="btn-action alertas" (click)="abrirAlertas()">
+          <mat-icon>notifications_active</mat-icon> Alertas de Fondo
+        </button>
+      </div>
+    </div>
+
+    <!-- TIRA DE SALDOS -->
+    <div class="saldo-strip animate-fadeInUp" *ngIf="esDirectiva && saldo">
+      <div class="saldo-metric ingresos">
+        <mat-icon>trending_up</mat-icon>
+        <div class="saldo-info">
+          <span class="saldo-label">Ingresos</span>
+          <span class="saldo-value">{{ grupo.moneda }} {{ saldo.totalIngresos | number:'1.2-2' }}</span>
+        </div>
+      </div>
+      <div class="saldo-metric egresos">
+        <mat-icon>trending_down</mat-icon>
+        <div class="saldo-info">
+          <span class="saldo-label">Egresos</span>
+          <span class="saldo-value">{{ grupo.moneda }} {{ saldo.totalEgresos | number:'1.2-2' }}</span>
+        </div>
+      </div>
+      <div class="saldo-metric multas">
+        <mat-icon>gavel</mat-icon>
+        <div class="saldo-info">
+          <span class="saldo-label">Multas</span>
+          <span class="saldo-value">{{ grupo.moneda }} {{ saldo.totalMultas | number:'1.2-2' }}</span>
+        </div>
+      </div>
+      <div class="saldo-metric carnaval">
+        <mat-icon>celebration</mat-icon>
+        <div class="saldo-info">
+          <span class="saldo-label">Fondo Carnaval</span>
+          <span class="saldo-value">{{ grupo.moneda }} {{ (saldo.saldoCarnaval || 0) | number:'1.2-2' }}</span>
+        </div>
+      </div>
+      <div class="saldo-metric ahorro">
+        <mat-icon>savings</mat-icon>
+        <div class="saldo-info">
+          <span class="saldo-label">Fondo Ahorro</span>
+          <span class="saldo-value">{{ grupo.moneda }} {{ (saldo.saldoAhorro || 0) | number:'1.2-2' }}</span>
+        </div>
+      </div>
+      <div class="saldo-metric disponible">
+        <mat-icon>account_balance</mat-icon>
+        <div class="saldo-info">
+          <span class="saldo-label">Saldo Disponible</span>
+          <span class="saldo-value">{{ grupo.moneda }} {{ saldo.saldoDisponible | number:'1.2-2' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- TABS -->
+    <mat-tab-group class="tabs-container animate-fadeInUp" animationDuration="200ms">
+
+      <!-- TAB MOVIMIENTOS -->
+      <mat-tab>
+      <ng-template mat-tab-label><mat-icon>receipt_long</mat-icon> Movimientos</ng-template>
+        <div class="tab-content">
+          <div class="empty-state" *ngIf="movimientos.length === 0">
+            <mat-icon class="empty-icon">receipt_long</mat-icon>
+            <p>No hay movimientos registrados</p>
+          </div>
+          <div class="movimientos-list" *ngIf="movimientos.length > 0">
+            <div class="mov-filtros">
+              <button class="filtro-btn" [class.activo]="filtroMovimiento === 'TODOS'" (click)="filtroMovimiento = 'TODOS'">Todos</button>
+              <button class="filtro-btn" [class.activo]="filtroMovimiento === 'APORTE'" (click)="filtroMovimiento = 'APORTE'"><mat-icon>payments</mat-icon> Aportes</button>
+              <button class="filtro-btn" [class.activo]="filtroMovimiento === 'GASTO_COMPARTIDO'" (click)="filtroMovimiento = 'GASTO_COMPARTIDO'"><mat-icon>handshake</mat-icon> Compartidos</button>
+              <button class="filtro-btn" [class.activo]="filtroMovimiento === 'GASTO_INDIVIDUAL'" (click)="filtroMovimiento = 'GASTO_INDIVIDUAL'"><mat-icon>shopping_bag</mat-icon> Individuales</button>
+              <button class="filtro-btn" [class.activo]="filtroMovimiento === 'MULTA'" (click)="filtroMovimiento = 'MULTA'"><mat-icon>gavel</mat-icon> Multas</button>
+              <button class="filtro-btn" *ngIf="esDirectiva" [class.activo]="filtroMovimiento === 'INGRESO_DIRECTO'" (click)="filtroMovimiento = 'INGRESO_DIRECTO'"><mat-icon>account_balance</mat-icon> Ingresos</button>
+            </div>
+            <div class="movimiento-item"
+                 *ngFor="let mov of getMovimientosFiltrados()"
+                 [class.clickeable]="mov.tipo === 'GASTO_INDIVIDUAL' || mov.tipo === 'GASTO_COMPARTIDO'"
+                 (click)="verDetalleMovimiento(mov)">
+              <div class="mov-fecha-col">
+                <span class="mov-dia">{{ mov.fecha | date:'dd' }}</span>
+                <span class="mov-mes-anio text-muted">{{ mov.fecha | date:'MMM yyyy' }}</span>
+              </div>
+              <div class="mov-info">
+                <div class="mov-tipo-row">
+                  <span class="mov-tipo" [style.color]="getTipoColor(mov.tipo)">{{ getTipoLabel(mov.tipo) }}</span>
+                  <span class="badge-fondo" *ngIf="mov.fondo"
+                        [class.fondo-carnaval]="mov.fondo === 'CARNAVAL'"
+                        [class.fondo-ahorro]="mov.fondo === 'AHORRO'"
+                        [class.fondo-mixto]="mov.fondo === 'MIXTO'">
+                    {{ mov.fondo === 'CARNAVAL' ? 'Carnaval' : mov.fondo === 'AHORRO' ? 'Ahorro' : 'Mixto' }}
+                  </span>
+                </div>
+                <span class="mov-usuario" *ngIf="mov.usuarioAfectado">
+                  <mat-icon>person</mat-icon> {{ mov.usuarioAfectado }}
+                </span>
+                <span class="mov-desc">{{ mov.descripcion || 'Sin descripción' }}</span>
+                <span class="mov-reg text-muted" *ngIf="mov.registradoPor">
+                  <mat-icon>edit</mat-icon> {{ mov.registradoPor.nombre }} {{ mov.registradoPor.apellido }}
+                </span>
+              </div>
+              <div class="mov-monto" [style.color]="getTipoColor(mov.tipo)">
+                {{ mov.tipo === 'APORTE' || mov.tipo === 'INGRESO_DIRECTO' ? '+' : '-' }}
+                {{ grupo.moneda }} {{ mov.montoTotal | number:'1.2-2' }}
+              </div>
+              <button class="icon-btn mov-eliminar" *ngIf="esDirectiva" matTooltip="Eliminar movimiento"
+                      (click)="eliminarMovimiento(mov, $event)">
+                <mat-icon>delete_outline</mat-icon>
+              </button>
+            </div>
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- TAB KARDEX -->
+      <mat-tab>
+      <ng-template mat-tab-label><mat-icon>account_balance_wallet</mat-icon> Kardex</ng-template>
+        <div class="tab-content">
+          <div *ngIf="!esDirectiva && miKardex" class="mi-kardex">
+            <div class="kardex-header">
+              <h3>Mi Kardex en {{ grupo.nombre }}</h3>
+            </div>
+            <div class="kardex-grid">
+              <div class="kardex-stat aportes">
+                <span class="stat-label">Aportes</span>
+                <span class="stat-value">+{{ grupo.moneda }} {{ miKardex.totalAportes | number:'1.2-2' }}</span>
+              </div>
+              <div class="kardex-stat gastos-comp">
+                <span class="stat-label">Gastos Compartidos</span>
+                <span class="stat-value">-{{ grupo.moneda }} {{ miKardex.totalGastosCompartidos | number:'1.2-2' }}</span>
+              </div>
+              <div class="kardex-stat gastos-ind">
+                <span class="stat-label">Gastos Individuales</span>
+                <span class="stat-value">-{{ grupo.moneda }} {{ miKardex.totalGastosIndividuales | number:'1.2-2' }}</span>
+              </div>
+              <div class="kardex-stat multas-stat" *ngIf="miKardex.totalMultas > 0">
+                <span class="stat-label">Multas Pendientes</span>
+                <span class="stat-value">{{ grupo.moneda }} {{ miKardex.totalMultas | number:'1.2-2' }}</span>
+              </div>
+              <div class="kardex-stat" style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2);" *ngIf="miKardex.totalMultas === 0">
+                <span class="stat-label" style="color: #10B981;">Multas</span>
+                <span class="stat-value" style="color: #10B981;">Sin deudas</span>
+              </div>
+              <div class="kardex-stat saldo" [class.positivo]="miKardex.saldoActual >= 0" [class.negativo]="miKardex.saldoActual < 0">
+                <span class="stat-label">Saldo Actual</span>
+                <span class="stat-value">{{ grupo.moneda }} {{ miKardex.saldoActual | number:'1.2-2' }}</span>
+              </div>
+            </div>
+            <div class="mis-multas" *ngIf="multas.length > 0">
+              <h4>Mis multas</h4>
+              <div class="multa-item" *ngFor="let m of multas" [class.pagada]="m.estado === 'PAGADA'" [class.pendiente]="m.estado === 'PENDIENTE'">
+                <mat-icon class="multa-icon">{{ m.estado === 'PAGADA' ? 'check_circle' : 'gavel' }}</mat-icon>
+                <div class="multa-info">
+                  <span class="multa-motivo">{{ m.motivo }}</span>
+                  <div class="multa-meta">
+                    <span class="text-muted">{{ m.fecha | date:'dd/MM/yyyy' }}</span>
+                    <span class="multa-periodo" *ngIf="m.periodoMes && m.periodoAnio">· {{ getNombreMes(m.periodoMes!) }} {{ m.periodoAnio }}</span>
+                  </div>
+                </div>
+                <div class="multa-right">
+                  <span class="multa-monto" [class.pagada-monto]="m.estado === 'PAGADA'">{{ grupo.moneda }} {{ m.monto | number:'1.2-2' }}</span>
+                  <span class="badge badge-success" *ngIf="m.estado === 'PAGADA'">✓ Pagada</span>
+                  <span class="badge badge-danger" *ngIf="m.estado === 'PENDIENTE'">Pendiente</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div *ngIf="esDirectiva" class="kardex-tabla">
+            <div class="empty-state" *ngIf="kardexList.length === 0">
+              <mat-icon class="empty-icon">account_balance_wallet</mat-icon>
+              <p>No hay datos de kardex aún</p>
+            </div>
+            <div class="kardex-row" *ngFor="let k of kardexList"
+                 (click)="verKardexMiembro({id: k.usuario.id, nombre: k.usuario.nombre, apellido: k.usuario.apellido, email: k.usuario.email, rol: ''})">
+              <div class="kardex-miembro">
+                <div class="mini-avatar">{{ getInitiales(k.usuario.nombre, k.usuario.apellido) }}</div>
+                <div>
+                  <span class="miembro-nombre">{{ k.usuario.nombre }} {{ k.usuario.apellido }}</span>
+                  <span class="miembro-email text-muted">{{ k.usuario.email }}</span>
+                </div>
+              </div>
+              <div class="kardex-nums">
+                <div class="knum aportes"><span>Aportes</span><strong>+{{ k.totalAportes | number:'1.2-2' }}</strong></div>
+                <div class="knum gastos"><span>Gastos</span><strong>-{{ (k.totalGastosCompartidos + k.totalGastosIndividuales) | number:'1.2-2' }}</strong></div>
+                <div class="knum multas"><span>Multas</span><strong>{{ k.totalMultas | number:'1.2-2' }}</strong></div>
+                <div class="knum saldo" [class.pos]="k.saldoActual >= 0" [class.neg]="k.saldoActual < 0"><span>Saldo</span><strong>{{ k.saldoActual | number:'1.2-2' }}</strong></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- TAB MIEMBROS -->
+      <mat-tab>
+      <ng-template mat-tab-label><mat-icon>groups</mat-icon> Miembros</ng-template>
+        <div class="tab-content">
+          <div class="miembros-grid">
+            <div class="miembro-card" *ngFor="let m of (esDirectiva ? miembrosGestion : miembros)"
+                 [class.inactivo]="m.activo === false">
+              <div class="miembro-avatar">{{ getInitiales(m.nombre, m.apellido) }}</div>
+              <div class="miembro-info">
+                <span class="miembro-nombre">{{ m.nombre }} {{ m.apellido }}</span>
+                <span class="miembro-email">{{ m.email }}</span>
+                <div class="miembro-badges">
+                  <span class="badge" [class.badge-primary]="m.rol === 'DIRECTIVA'" [class.badge-success]="m.rol === 'MIEMBRO'">{{ m.rol }}</span>
+                  <span class="badge badge-muted" *ngIf="m.activo === false">Inactivo</span>
+                  <span class="badge badge-carnaval" *ngIf="m.activo !== false && m.participaCarnaval === false">Solo ahorro</span>
+                </div>
+              </div>
+
+              <div class="miembro-actions" *ngIf="esDirectiva && !esMiUsuario(m.id)">
+                <!-- Miembro ACTIVO -->
+                <ng-container *ngIf="m.activo !== false">
+                  <button class="btn-rol"
+                          [class.degradar]="m.rol === 'DIRECTIVA'"
+                          [class.promover]="m.rol === 'MIEMBRO'"
+                          (click)="cambiarRol(m)"
+                          [matTooltip]="m.rol === 'DIRECTIVA' ? 'Cambiar a Miembro' : 'Promover a Directiva'">
+                    <mat-icon>{{ m.rol === 'DIRECTIVA' ? 'arrow_downward' : 'arrow_upward' }}</mat-icon>
+                    {{ m.rol === 'DIRECTIVA' ? 'Hacer Miembro' : 'Hacer Directiva' }}
+                  </button>
+                  <button class="btn-mini" (click)="toggleParticipaCarnaval(m)"
+                          [matTooltip]="m.participaCarnaval === false ? 'Activar carnaval' : 'Quitar de carnaval'">
+                    <mat-icon>theater_comedy</mat-icon>
+                    {{ m.participaCarnaval === false ? 'Activar carnaval' : 'Quitar carnaval' }}
+                  </button>
+                  <button class="btn-mini danger" (click)="inactivarMiembro(m)" matTooltip="Marcar inactivo">
+                    <mat-icon>pause_circle</mat-icon> Inactivar
+                  </button>
+                </ng-container>
+                <!-- Miembro INACTIVO -->
+                <ng-container *ngIf="m.activo === false">
+                  <button class="btn-mini reactivar" (click)="abrirReactivarMiembro(m)" matTooltip="Reactivar (ponerse al día)">
+                    <mat-icon>play_circle</mat-icon> Reactivar
+                  </button>
+                </ng-container>
+              </div>
+              <div class="tu-badge" *ngIf="esMiUsuario(m.id)"><span>Tú</span></div>
+            </div>
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- TAB MULTAS -->
+      <mat-tab>
+      <ng-template mat-tab-label><mat-icon>gavel</mat-icon> Multas</ng-template>
+        <div class="tab-content">
+          <div class="empty-state" *ngIf="multas.length === 0">
+            <mat-icon class="empty-icon">check_circle</mat-icon>
+            <p>No hay multas registradas</p>
+          </div>
+          <div class="multas-lista" *ngIf="multas.length > 0">
+            <div class="multa-item" *ngFor="let m of multas" [class.pagada]="m.estado === 'PAGADA'" [class.pendiente]="m.estado === 'PENDIENTE'">
+              <mat-icon class="multa-icon">{{ m.estado === 'PAGADA' ? 'check_circle' : 'gavel' }}</mat-icon>
+              <div class="multa-info">
+                <span class="multa-usuario">{{ m.nombreUsuario }}</span>
+                <span class="multa-motivo">{{ m.motivo }}</span>
+                <div class="multa-meta">
+                  <span class="text-muted">{{ m.fecha | date:'dd/MM/yyyy' }}</span>
+                  <span class="multa-periodo" *ngIf="m.periodoMes && m.periodoAnio">· Periodo: {{ getNombreMes(m.periodoMes!) }} {{ m.periodoAnio }}</span>
+                  <span class="multa-fecha-pago" *ngIf="m.fechaPago">· Pagada el {{ m.fechaPago | date:'dd/MM/yyyy' }}</span>
+                </div>
+              </div>
+              <div class="multa-right">
+                <span class="multa-monto" [class.pagada-monto]="m.estado === 'PAGADA'">{{ grupo!.moneda }} {{ m.monto | number:'1.2-2' }}</span>
+                <div class="multa-actions">
+                  <span class="badge badge-success" *ngIf="m.estado === 'PAGADA'">✓ Pagada</span>
+                  <span class="badge badge-danger" *ngIf="m.estado === 'PENDIENTE'">Pendiente</span>
+                  <button class="btn-pagar" *ngIf="esDirectiva && m.estado === 'PENDIENTE'" (click)="pagarMulta(m)">
+                    <mat-icon>check_circle_outline</mat-icon> Marcar pagada
+                  </button>
+                  <button class="btn-eliminar-multa" *ngIf="esDirectiva && m.estado === 'PENDIENTE'" (click)="eliminarMulta(m)">
+                    <mat-icon>delete_outline</mat-icon> Eliminar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- TAB PEDIDOS -->
+      <mat-tab>
+      <ng-template mat-tab-label><mat-icon>inventory_2</mat-icon> Pedidos</ng-template>
+        <div class="tab-content">
+          <div class="empty-state" *ngIf="pedidos.length === 0">
+            <mat-icon class="empty-icon">inventory_2</mat-icon>
+            <p>No hay pedidos registrados</p>
+          </div>
+          <div class="pedidos-lista" *ngIf="pedidos.length > 0">
+            <div class="pedido-card" *ngFor="let p of pedidos">
+              <div class="pedido-header">
+                <div class="pedido-info">
+                  <span class="pedido-nombre">{{ p.nombre }}</span>
+                  <span class="pedido-fecha text-muted">{{ p.fecha | date:'dd/MM/yyyy' }}</span>
+                  <span class="badge" [class.badge-success]="p.estado === 'ABIERTO'" [class.badge-danger]="p.estado === 'CERRADO'">{{ p.estado }}</span>
+                </div>
+                <div class="pedido-total">
+                  <span class="total-label">Total</span>
+                  <span class="total-valor">{{ grupo?.moneda }} {{ p.totalGeneral | number:'1.2-2' }}</span>
+                </div>
+              </div>
+              <div class="pedido-actions">
+                <button class="btn-sm btn-primary-sm" (click)="verDetallePedido(p)"><mat-icon>visibility</mat-icon> Ver detalle</button>
+                <button class="btn-sm btn-primary-sm" *ngIf="esDirectiva && p.estado === 'ABIERTO'" (click)="editarPedido(p)"><mat-icon>edit</mat-icon> Editar</button>
+                <button class="btn-sm btn-success-sm" (click)="exportarPedidoExcel(p)"><mat-icon>download</mat-icon> Exportar CSV</button>
+                <button class="btn-sm btn-warning-sm" *ngIf="esDirectiva && p.estado === 'ABIERTO'" (click)="cerrarPedido(p)"><mat-icon>lock</mat-icon> Cerrar</button>
+                <button class="btn-sm btn-danger-sm" *ngIf="esDirectiva" (click)="eliminarPedido(p)"><mat-icon>delete</mat-icon> Eliminar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- TAB PAGOS PROGRAMADOS -->
+      <mat-tab>
+      <ng-template mat-tab-label><mat-icon>event</mat-icon> Pagos Programados</ng-template>
+        <div class="tab-content">
+
+          <!-- VISTA DIRECTIVA -->
+          <div *ngIf="esDirectiva">
+            <div class="pp-header">
+              <h3>Pagos Programados</h3>
+              <button class="btn-sm btn-primary-sm" (click)="abrirModal('pagoProgramado')"><mat-icon>add</mat-icon> Nuevo</button>
+            </div>
+
+            <div class="pp-lista" *ngIf="pagosProgramados.length > 0">
+              <div class="pp-card" *ngFor="let pp of pagosProgramados">
+                <div class="pp-info">
+                  <span class="pp-nombre">{{ pp.nombre }}</span>
+                  <span class="pp-monto">{{ grupo?.moneda }} {{ pp.montoMensual | number:'1.2-2' }}/mes</span>
+                  <span class="text-muted pp-fechas">{{ pp.fechaInicio | date:'dd/MM/yyyy' }} → {{ pp.fechaFin | date:'dd/MM/yyyy' }}</span>
+                  <span class="text-muted">Límite: día {{ pp.diaLimitePago }} de cada mes</span>
+                  <span class="text-muted">Multa:
+                    <strong *ngIf="pp.tipoMulta === 'FIJO'">{{ grupo?.moneda }} {{ pp.montoMulta }}</strong>
+                    <strong *ngIf="pp.tipoMulta === 'PORCENTAJE'">{{ pp.porcentajeMulta }}%</strong>
+                  </span>
+                </div>
+                <div class="pp-card-actions">
+                  <span class="badge badge-success" *ngIf="pp.activo">Activo</span>
+                  <span class="badge badge-danger" *ngIf="!pp.activo">Finalizado</span>
+                  <button class="btn-sm btn-secondary-sm" *ngIf="pp.activo" (click)="abrirAgregarMiembroPago(pp)">
+                    <mat-icon>person_add</mat-icon> Añadir miembro
+                  </button>
+                  <button class="btn-sm btn-danger-sm" *ngIf="pp.activo" (click)="finalizarPagoProgramado(pp)">
+                    <mat-icon>stop_circle</mat-icon> Finalizar
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="empty-state" *ngIf="pagosProgramados.length === 0">
+              <mat-icon class="empty-icon">event</mat-icon>
+              <p>Aún no hay pagos programados.<br>Crea uno para generar las cuotas mensuales de cada miembro.</p>
+            </div>
+
+            <div class="mes-selector">
+              <button class="icon-btn" (click)="cambiarMes(-1)"><mat-icon>chevron_left</mat-icon></button>
+              <span class="mes-label">{{ getNombreMes(mesSeleccionado) }} {{ anioSeleccionado }}</span>
+              <button class="icon-btn" (click)="cambiarMes(1)"><mat-icon>chevron_right</mat-icon></button>
+              <button class="btn-sm btn-warning-sm" (click)="verificarMultas()"><mat-icon>warning</mat-icon> Verificar multas</button>
+            </div>
+
+            <div class="cuotas-lista" *ngIf="cuotasMes.length > 0">
+              <div class="cuota-item" *ngFor="let c of cuotasMes"
+                   [class.pagada]="c.estado === 'PAGADA'"
+                   [class.pendiente]="c.estado === 'PENDIENTE'"
+                   [class.vencida]="c.estado === 'VENCIDA'">
+                <div class="cuota-info">
+                  <span class="cuota-usuario">{{ c.nombreUsuario }}</span>
+                  <span class="cuota-pago text-muted">{{ c.nombrePago }}</span>
+                  <span class="cuota-multa" *ngIf="c.multaAplicada">
+                    <mat-icon>gavel</mat-icon> Multa: {{ grupo?.moneda }} {{ c.montoMulta | number:'1.2-2' }}
+                  </span>
+                </div>
+                <div class="cuota-right">
+                  <div class="cuota-montos">
+                    <span class="cuota-monto">{{ grupo?.moneda }} {{ c.monto | number:'1.2-2' }}</span>
+                    <span class="cuota-monto-multa" *ngIf="c.multaAplicada">
+                      + {{ grupo?.moneda }} {{ c.montoMulta | number:'1.2-2' }} multa
+                    </span>
+                    <span class="cuota-monto-total" *ngIf="c.multaAplicada">
+                      = {{ grupo?.moneda }} {{ (c.monto + c.montoMulta) | number:'1.2-2' }} total
+                    </span>
+                  </div>
+                  <span class="badge badge-success" *ngIf="c.estado === 'PAGADA'">✓ Pagada</span>
+                  <span class="badge badge-danger" *ngIf="c.estado === 'PENDIENTE'">Pendiente</span>
+                  <span class="badge badge-warning" *ngIf="c.estado === 'VENCIDA'">Vencida</span>
+                  <span class="badge badge-muted" *ngIf="c.estado === 'CONGELADA'" matTooltip="Miembro inactivo: la cuota no genera deuda ni multa">Congelada</span>
+                  <button class="btn-pagar" *ngIf="c.estado === 'PENDIENTE' || c.estado === 'VENCIDA'" (click)="pagarCuota(c)">
+                    <mat-icon>check_circle_outline</mat-icon> Marcar pagada
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="empty-state" *ngIf="cuotasMes.length === 0">
+              <mat-icon class="empty-icon">event</mat-icon>
+              <p>No hay cuotas para este mes</p>
+            </div>
+          </div>
+
+          <!-- VISTA MIEMBRO -->
+          <div *ngIf="!esDirectiva">
+            <h3 style="margin-bottom: 16px; font-size: 16px; font-weight: 700;">Mis Cuotas Programadas</h3>
+            <div class="cuotas-lista" *ngIf="misCuotas.length > 0">
+              <div class="cuota-item" *ngFor="let c of misCuotas"
+                   [class.pagada]="c.estado === 'PAGADA'"
+                   [class.pendiente]="c.estado === 'PENDIENTE'"
+                   [class.vencida]="c.estado === 'VENCIDA'">
+                <div class="cuota-info">
+                  <span class="cuota-pago">{{ c.nombrePago }}</span>
+                  <span class="text-muted">{{ getNombreMes(c.mes) }} {{ c.anio }}</span>
+                  <span class="cuota-multa" *ngIf="c.multaAplicada">
+                    <mat-icon>gavel</mat-icon> Multa aplicada: {{ grupo?.moneda }} {{ c.montoMulta | number:'1.2-2' }}
+                  </span>
+                </div>
+                <div class="cuota-right">
+                  <div class="cuota-montos">
+                    <span class="cuota-monto">{{ grupo?.moneda }} {{ c.monto | number:'1.2-2' }}</span>
+                    <span class="cuota-monto-multa" *ngIf="c.multaAplicada">
+                      + {{ grupo?.moneda }} {{ c.montoMulta | number:'1.2-2' }} multa
+                    </span>
+                    <span class="cuota-monto-total" *ngIf="c.multaAplicada">
+                      = {{ grupo?.moneda }} {{ (c.monto + c.montoMulta) | number:'1.2-2' }} total
+                    </span>
+                  </div>
+                  <span class="badge badge-success" *ngIf="c.estado === 'PAGADA'">✓ Pagada</span>
+                  <span class="badge badge-danger" *ngIf="c.estado === 'PENDIENTE'">Pendiente</span>
+                  <span class="badge badge-warning" *ngIf="c.estado === 'VENCIDA'">Vencida</span>
+                </div>
+              </div>
+            </div>
+            <div class="empty-state" *ngIf="misCuotas.length === 0">
+              <mat-icon class="empty-icon">event</mat-icon>
+              <p>No tienes cuotas programadas</p>
+            </div>
+          </div>
+
+        </div>
+      </mat-tab>
+
+    </mat-tab-group>
+
+  </div>
+</div>
+
+<!-- MODAL APORTE -->
+<div class="modal-overlay" *ngIf="modalActivo === 'aporte'" (click)="cerrarModal()">
+  <div class="modal animate-fadeInUp" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Registrar Aporte</h2>
+      <button class="icon-btn" (click)="cerrarModal()"><mat-icon>close</mat-icon></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Miembro *</label>
+        <select [(ngModel)]="aporteForm.usuarioId" class="form-input">
+          <option value="0" disabled>Selecciona un miembro</option>
+          <option *ngFor="let m of miembros" [value]="m.id">{{ m.nombre }} {{ m.apellido }}</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Monto *</label>
+          <input type="number" [(ngModel)]="aporteForm.monto" placeholder="0.00" class="form-input">
+        </div>
+        <div class="form-group">
+          <label>Fecha *</label>
+          <input type="date" [(ngModel)]="aporteForm.fecha" class="form-input">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Descripción</label>
+        <input type="text" [(ngModel)]="aporteForm.descripcion" placeholder="Opcional..." class="form-input">
+      </div>
+      <div class="form-group">
+        <label>Fondo *</label>
+        <div class="fondo-selector">
+          <button type="button" class="fondo-chip" [class.selected]="aporteForm.fondo === 'CARNAVAL'" (click)="aporteForm.fondo = 'CARNAVAL'">
+            <mat-icon>celebration</mat-icon> Carnaval
+          </button>
+          <button type="button" class="fondo-chip" [class.selected]="aporteForm.fondo === 'AHORRO'" (click)="aporteForm.fondo = 'AHORRO'">
+            <mat-icon>savings</mat-icon> Ahorro
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="cerrarModal()">Cancelar</button>
+      <button class="btn-primary" (click)="registrarAporte()" [disabled]="loadingAction">
+        <mat-spinner diameter="18" *ngIf="loadingAction"></mat-spinner>
+        <span>{{ loadingAction ? 'Guardando...' : 'Registrar Aporte' }}</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL GASTO COMPARTIDO -->
+<div class="modal-overlay" *ngIf="modalActivo === 'gastoCompartido'" (click)="cerrarModal()">
+  <div class="modal animate-fadeInUp" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Gasto Compartido</h2>
+      <button class="icon-btn" (click)="cerrarModal()"><mat-icon>close</mat-icon></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Descripción *</label>
+        <input type="text" [(ngModel)]="gastoCompartidoForm.descripcion" placeholder="Ej: Cena del grupo" class="form-input">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Monto Total *</label>
+          <input type="number" [(ngModel)]="gastoCompartidoForm.montoTotal" placeholder="0.00" class="form-input">
+        </div>
+        <div class="form-group">
+          <label>Fecha *</label>
+          <input type="date" [(ngModel)]="gastoCompartidoForm.fecha" class="form-input">
+        </div>
+      </div>
+      <div class="form-group">
+        <div class="form-group-header">
+          <label>Selecciona los miembros que participan *</label>
+          <button type="button" class="btn-seleccionar-todos" (click)="toggleTodosMiembros()">
+            <mat-icon>{{ todosMiembrosSeleccionados ? 'deselect' : 'select_all' }}</mat-icon>
+            {{ todosMiembrosSeleccionados ? 'Ninguno' : 'Todos' }}
+          </button>
+        </div>
+        <div class="miembros-selector">
+          <div class="miembro-chip" *ngFor="let m of miembros" [class.selected]="esMiembroSeleccionado(m.id)" (click)="toggleMiembro(m.id)">
+            <div class="chip-avatar">{{ getInitiales(m.nombre, m.apellido) }}</div>
+            <span>{{ m.nombre }}</span>
+            <mat-icon *ngIf="esMiembroSeleccionado(m.id)">check_circle</mat-icon>
+          </div>
+        </div>
+      </div>
+      <div class="monto-por-miembro" *ngIf="gastoCompartidoForm.usuarioIds.length > 0 && gastoCompartidoForm.montoTotal > 0">
+        <mat-icon>info_outline</mat-icon>
+        <span>{{ grupo?.moneda }} {{ (gastoCompartidoForm.montoTotal / gastoCompartidoForm.usuarioIds.length) | number:'1.2-2' }} por persona</span>
+      </div>
+      <div class="form-group">
+        <label>¿De qué fondo sale? *</label>
+        <div class="fondo-selector">
+          <button type="button" class="fondo-chip" [class.selected]="gastoCompartidoForm.fondo === 'CARNAVAL'" (click)="gastoCompartidoForm.fondo = 'CARNAVAL'">
+            <mat-icon>celebration</mat-icon> Carnaval
+          </button>
+          <button type="button" class="fondo-chip" [class.selected]="gastoCompartidoForm.fondo === 'AHORRO'" (click)="gastoCompartidoForm.fondo = 'AHORRO'">
+            <mat-icon>savings</mat-icon> Ahorro
+          </button>
+          <button type="button" class="fondo-chip" [class.selected]="gastoCompartidoForm.fondo === 'MIXTO'" (click)="gastoCompartidoForm.fondo = 'MIXTO'">
+            <mat-icon>call_split</mat-icon> Mixto
+          </button>
+        </div>
+        <div class="fondo-mixto-split" *ngIf="gastoCompartidoForm.fondo === 'MIXTO'">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Desde Carnaval</label>
+              <input type="number" [(ngModel)]="gastoCompartidoForm.montoCarnavalManual" placeholder="0.00" class="form-input">
+            </div>
+            <div class="form-group">
+              <label>Desde Ahorro</label>
+              <input type="number" [(ngModel)]="gastoCompartidoForm.montoAhorroManual" placeholder="0.00" class="form-input">
+            </div>
+          </div>
+          <div class="fondo-mixto-hint" [class.ok]="montoRestanteMixto(gastoCompartidoForm.montoCarnavalManual, gastoCompartidoForm.montoAhorroManual, gastoCompartidoForm.montoTotal) === 0">
+            <mat-icon>{{ montoRestanteMixto(gastoCompartidoForm.montoCarnavalManual, gastoCompartidoForm.montoAhorroManual, gastoCompartidoForm.montoTotal) === 0 ? 'check_circle' : 'info_outline' }}</mat-icon>
+            <span *ngIf="montoRestanteMixto(gastoCompartidoForm.montoCarnavalManual, gastoCompartidoForm.montoAhorroManual, gastoCompartidoForm.montoTotal) !== 0">
+              Falta repartir {{ grupo?.moneda }} {{ montoRestanteMixto(gastoCompartidoForm.montoCarnavalManual, gastoCompartidoForm.montoAhorroManual, gastoCompartidoForm.montoTotal) | number:'1.2-2' }}
+            </span>
+            <span *ngIf="montoRestanteMixto(gastoCompartidoForm.montoCarnavalManual, gastoCompartidoForm.montoAhorroManual, gastoCompartidoForm.montoTotal) === 0">
+              Reparto completo
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="cerrarModal()">Cancelar</button>
+      <button class="btn-primary" (click)="registrarGastoCompartido()" [disabled]="loadingAction">
+        <mat-spinner diameter="18" *ngIf="loadingAction"></mat-spinner>
+        <span>{{ loadingAction ? 'Guardando...' : 'Registrar Gasto' }}</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL MULTA -->
+<div class="modal-overlay" *ngIf="modalActivo === 'configAlertas'" (click)="cerrarModal()">
+  <div class="modal animate-fadeInUp" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Alertas de Saldo Bajo</h2>
+      <button class="icon-btn" (click)="cerrarModal()"><mat-icon>close</mat-icon></button>
+    </div>
+    <div class="modal-body">
+      <p class="text-muted" style="margin-bottom: 14px;">
+        Cuando el saldo de un fondo baje de este monto tras un gasto, se avisa a la Directiva.
+        Déjalo vacío para desactivar la alerta de ese fondo.
+      </p>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Umbral Fondo Carnaval</label>
+          <input type="number" [(ngModel)]="alertasForm.alertaSaldoCarnaval" placeholder="Sin alerta" class="form-input">
+        </div>
+        <div class="form-group">
+          <label>Umbral Fondo Ahorro</label>
+          <input type="number" [(ngModel)]="alertasForm.alertaSaldoAhorro" placeholder="Sin alerta" class="form-input">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="cerrarModal()">Cancelar</button>
+      <button class="btn-primary" (click)="guardarAlertas()" [disabled]="loadingAction">
+        <mat-spinner diameter="18" *ngIf="loadingAction"></mat-spinner>
+        <span>{{ loadingAction ? 'Guardando...' : 'Guardar' }}</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" *ngIf="modalActivo === 'multa'" (click)="cerrarModal()">
+  <div class="modal animate-fadeInUp" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Registrar Multa</h2>
+      <button class="icon-btn" (click)="cerrarModal()"><mat-icon>close</mat-icon></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Miembro *</label>
+        <select [(ngModel)]="multaForm.usuarioId" class="form-input">
+          <option value="0" disabled>Selecciona un miembro</option>
+          <option *ngFor="let m of miembros" [value]="m.id">{{ m.nombre }} {{ m.apellido }}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Motivo *</label>
+        <input type="text" [(ngModel)]="multaForm.motivo" placeholder="Ej: Llegada tarde" class="form-input">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Monto *</label>
+          <input type="number" [(ngModel)]="multaForm.monto" placeholder="0.00" class="form-input">
+        </div>
+        <div class="form-group">
+          <label>Fecha *</label>
+          <input type="date" [(ngModel)]="multaForm.fecha" class="form-input">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Mes de atribución</label>
+          <select [(ngModel)]="multaForm.periodoMes" class="form-input">
+            <option [value]="1">Enero</option>
+            <option [value]="2">Febrero</option>
+            <option [value]="3">Marzo</option>
+            <option [value]="4">Abril</option>
+            <option [value]="5">Mayo</option>
+            <option [value]="6">Junio</option>
+            <option [value]="7">Julio</option>
+            <option [value]="8">Agosto</option>
+            <option [value]="9">Septiembre</option>
+            <option [value]="10">Octubre</option>
+            <option [value]="11">Noviembre</option>
+            <option [value]="12">Diciembre</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Año de atribución</label>
+          <input type="number" [(ngModel)]="multaForm.periodoAnio" placeholder="2026" class="form-input">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="cerrarModal()">Cancelar</button>
+      <button class="btn-primary" (click)="registrarMulta()" [disabled]="loadingAction">
+        <mat-spinner diameter="18" *ngIf="loadingAction"></mat-spinner>
+        <span>{{ loadingAction ? 'Guardando...' : 'Registrar Multa' }}</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL GASTO INDIVIDUAL -->
+<div class="modal-overlay" *ngIf="modalActivo === 'gastoIndividual'" (click)="cerrarModal()">
+  <div class="modal animate-fadeInUp" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Gasto Individual</h2>
+      <button class="icon-btn" (click)="cerrarModal()"><mat-icon>close</mat-icon></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Descripción *</label>
+        <input type="text" [(ngModel)]="gastoIndividualForm.descripcion" placeholder="Ej: Compra de trajes" class="form-input">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Precio unitario *</label>
+          <input type="number" [(ngModel)]="gastoIndividualForm.precioUnitario" placeholder="0.00" class="form-input">
+        </div>
+        <div class="form-group">
+          <label>Fecha *</label>
+          <input type="date" [(ngModel)]="gastoIndividualForm.fecha" class="form-input">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Cantidad por miembro *</label>
+        <div class="cantidades-lista">
+          <div class="cantidad-item" *ngFor="let m of miembros">
+            <div class="cantidad-miembro">
+              <div class="chip-avatar">{{ getInitiales(m.nombre, m.apellido) }}</div>
+              <span>{{ m.nombre }} {{ m.apellido }}</span>
+            </div>
+            <div class="cantidad-input-group">
+              <input type="number" [(ngModel)]="gastoIndividualForm.cantidades[m.id]" placeholder="0" min="0" class="form-input cantidad-input">
+              <span class="cantidad-subtotal" *ngIf="gastoIndividualForm.cantidades[m.id] > 0 && gastoIndividualForm.precioUnitario > 0">
+                = {{ grupo?.moneda }} {{ (gastoIndividualForm.cantidades[m.id] * gastoIndividualForm.precioUnitario) | number:'1.2-2' }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="monto-por-miembro" *ngIf="getTotalGastoIndividual() > 0">
+        <mat-icon>calculate</mat-icon>
+        <span>Total: {{ grupo?.moneda }} {{ getTotalGastoIndividual() | number:'1.2-2' }}</span>
+      </div>
+      <div class="form-group">
+        <label>¿De qué fondo sale? *</label>
+        <div class="fondo-selector">
+          <button type="button" class="fondo-chip" [class.selected]="gastoIndividualForm.fondo === 'CARNAVAL'" (click)="gastoIndividualForm.fondo = 'CARNAVAL'">
+            <mat-icon>celebration</mat-icon> Carnaval
+          </button>
+          <button type="button" class="fondo-chip" [class.selected]="gastoIndividualForm.fondo === 'AHORRO'" (click)="gastoIndividualForm.fondo = 'AHORRO'">
+            <mat-icon>savings</mat-icon> Ahorro
+          </button>
+          <button type="button" class="fondo-chip" [class.selected]="gastoIndividualForm.fondo === 'MIXTO'" (click)="gastoIndividualForm.fondo = 'MIXTO'">
+            <mat-icon>call_split</mat-icon> Mixto
+          </button>
+        </div>
+        <div class="fondo-mixto-split" *ngIf="gastoIndividualForm.fondo === 'MIXTO'">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Desde Carnaval</label>
+              <input type="number" [(ngModel)]="gastoIndividualForm.montoCarnavalManual" placeholder="0.00" class="form-input">
+            </div>
+            <div class="form-group">
+              <label>Desde Ahorro</label>
+              <input type="number" [(ngModel)]="gastoIndividualForm.montoAhorroManual" placeholder="0.00" class="form-input">
+            </div>
+          </div>
+          <div class="fondo-mixto-hint" [class.ok]="montoRestanteMixto(gastoIndividualForm.montoCarnavalManual, gastoIndividualForm.montoAhorroManual, getTotalGastoIndividual()) === 0">
+            <mat-icon>{{ montoRestanteMixto(gastoIndividualForm.montoCarnavalManual, gastoIndividualForm.montoAhorroManual, getTotalGastoIndividual()) === 0 ? 'check_circle' : 'info_outline' }}</mat-icon>
+            <span *ngIf="montoRestanteMixto(gastoIndividualForm.montoCarnavalManual, gastoIndividualForm.montoAhorroManual, getTotalGastoIndividual()) !== 0">
+              Falta repartir {{ grupo?.moneda }} {{ montoRestanteMixto(gastoIndividualForm.montoCarnavalManual, gastoIndividualForm.montoAhorroManual, getTotalGastoIndividual()) | number:'1.2-2' }}
+            </span>
+            <span *ngIf="montoRestanteMixto(gastoIndividualForm.montoCarnavalManual, gastoIndividualForm.montoAhorroManual, getTotalGastoIndividual()) === 0">
+              Reparto completo
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="cerrarModal()">Cancelar</button>
+      <button class="btn-primary" (click)="registrarGastoIndividual()" [disabled]="loadingAction">
+        <mat-spinner diameter="18" *ngIf="loadingAction"></mat-spinner>
+        <span>{{ loadingAction ? 'Guardando...' : 'Registrar Gasto' }}</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL INGRESO DIRECTO -->
+<div class="modal-overlay" *ngIf="modalActivo === 'ingresoDirecto'" (click)="cerrarModal()">
+  <div class="modal animate-fadeInUp" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Ingreso Directo</h2>
+      <button class="icon-btn" (click)="cerrarModal()"><mat-icon>close</mat-icon></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Descripción</label>
+        <input type="text" [(ngModel)]="ingresoDirectoForm.descripcion" placeholder="Ej: Donación, Patrocinio..." class="form-input">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Monto *</label>
+          <input type="number" [(ngModel)]="ingresoDirectoForm.monto" placeholder="0.00" class="form-input">
+        </div>
+        <div class="form-group">
+          <label>Fecha *</label>
+          <input type="date" [(ngModel)]="ingresoDirectoForm.fecha" class="form-input">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Fondo *</label>
+        <div class="fondo-selector">
+          <button type="button" class="fondo-chip" [class.selected]="ingresoDirectoForm.fondo === 'CARNAVAL'" (click)="ingresoDirectoForm.fondo = 'CARNAVAL'">
+            <mat-icon>celebration</mat-icon> Carnaval
+          </button>
+          <button type="button" class="fondo-chip" [class.selected]="ingresoDirectoForm.fondo === 'AHORRO'" (click)="ingresoDirectoForm.fondo = 'AHORRO'">
+            <mat-icon>savings</mat-icon> Ahorro
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="cerrarModal()">Cancelar</button>
+      <button class="btn-primary" (click)="registrarIngresoDirecto()" [disabled]="loadingAction">
+        <mat-spinner diameter="18" *ngIf="loadingAction"></mat-spinner>
+        <span>{{ loadingAction ? 'Guardando...' : 'Registrar Ingreso' }}</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMAR ELIMINAR -->
+<div class="modal-overlay" *ngIf="showConfirmEliminar" (click)="showConfirmEliminar = false">
+  <div class="modal animate-fadeInUp" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Eliminar Grupo</h2>
+      <button class="icon-btn" (click)="showConfirmEliminar = false"><mat-icon>close</mat-icon></button>
+    </div>
+    <div class="modal-body">
+      <div class="confirm-warning">
+        <mat-icon>warning</mat-icon>
+        <div>
+          <p><strong>¿Estás seguro que deseas eliminar el grupo "{{ grupo?.nombre }}"?</strong></p>
+          <p class="text-muted">Esta acción es irreversible. Se eliminarán todos los movimientos, kardex, multas y miembros del grupo.</p>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="showConfirmEliminar = false">Cancelar</button>
+      <button class="btn-danger" (click)="eliminarGrupo()">
+        <mat-icon>delete_forever</mat-icon> Sí, eliminar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NUEVO PEDIDO -->
+<div class="modal-overlay" *ngIf="modalActivo === 'pedido'" (click)="cerrarModal()">
+  <div class="modal modal-lg animate-fadeInUp" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>{{ pedidoEditandoId ? 'Editar Pedido' : 'Nuevo Pedido' }}</h2>
+      <button class="icon-btn" (click)="cerrarModal()"><mat-icon>close</mat-icon></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Nombre del pedido *</label>
+          <input type="text" [(ngModel)]="pedidoForm.nombre" placeholder="Ej: Trajes de carnaval" class="form-input">
+        </div>
+        <div class="form-group">
+          <label>Fecha *</label>
+          <input type="date" [(ngModel)]="pedidoForm.fecha" class="form-input">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Descripción</label>
+        <input type="text" [(ngModel)]="pedidoForm.descripcion" placeholder="Opcional..." class="form-input">
+      </div>
+      <div class="items-section">
+        <div class="items-header">
+          <label>Items del pedido *</label>
+        </div>
+        <div class="item-form" *ngFor="let item of pedidoForm.items; let i = index" [class.colapsado]="itemExpandidoIndex !== i">
+          <div class="item-form-header" (click)="toggleItemExpandido(i)">
+            <mat-icon class="item-chevron">{{ itemExpandidoIndex === i ? 'expand_less' : 'expand_more' }}</mat-icon>
+            <span class="item-num">Item {{ i + 1 }}</span>
+            <span class="item-resumen" *ngIf="itemExpandidoIndex !== i">
+              {{ item.nombre || 'Sin nombre' }}<span *ngIf="item.descripcion"> — {{ item.descripcion }}</span>
+            </span>
+            <span class="item-resumen-total" *ngIf="itemExpandidoIndex !== i && getTotalItemPedido(item) > 0">
+              {{ grupo?.moneda }} {{ getTotalItemPedido(item) | number:'1.2-2' }}
+            </span>
+            <button class="btn-sm btn-danger-sm" (click)="$event.stopPropagation(); eliminarItemPedido(i)"><mat-icon>delete</mat-icon></button>
+          </div>
+
+          <ng-container *ngIf="itemExpandidoIndex === i">
+            <div class="form-row">
+              <div class="form-group">
+                <label>Nombre *</label>
+                <input type="text" [(ngModel)]="item.nombre" placeholder="Ej: Traje" class="form-input">
+              </div>
+              <div class="form-group">
+                <label>Precio unitario *</label>
+                <input type="number" [(ngModel)]="item.precioUnitario" placeholder="0.00" class="form-input">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Descripción</label>
+              <input type="text" [(ngModel)]="item.descripcion" placeholder="Opcional..." class="form-input">
+            </div>
+            <div class="form-group">
+              <label>Cantidad por miembro</label>
+              <div class="cantidades-lista">
+                <div class="cantidad-item" *ngFor="let m of miembros">
+                  <div class="cantidad-miembro">
+                    <div class="chip-avatar">{{ getInitiales(m.nombre, m.apellido) }}</div>
+                    <span>{{ m.nombre }} {{ m.apellido }}</span>
+                  </div>
+                  <div class="cantidad-input-group">
+                    <input type="number" [(ngModel)]="item.cantidades[m.id]" placeholder="0" min="0" class="form-input cantidad-input">
+                    <span class="cantidad-subtotal" *ngIf="item.cantidades[m.id] > 0 && item.precioUnitario > 0">
+                      = {{ grupo?.moneda }} {{ (item.cantidades[m.id] * item.precioUnitario) | number:'1.2-2' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="item-total" *ngIf="getTotalItemPedido(item) > 0">
+              Total item: <strong>{{ grupo?.moneda }} {{ getTotalItemPedido(item) | number:'1.2-2' }}</strong>
+            </div>
+          </ng-container>
+        </div>
+
+        <button class="btn-sm btn-primary-sm btn-agregar-item" type="button" (click)="agregarItemPedido()">
+          <mat-icon>add</mat-icon> Agregar item
+        </button>
+
+        <div class="pedido-total-form" *ngIf="getTotalPedidoForm() > 0">
+          <span>Total del pedido:</span>
+          <strong>{{ grupo?.moneda }} {{ getTotalPedidoForm() | number:'1.2-2' }}</strong>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="cerrarModal()">Cancelar</button>
+      <button class="btn-primary" (click)="crearPedido()" [disabled]="loadingAction">
+        <mat-spinner diameter="18" *ngIf="loadingAction"></mat-spinner>
+        <span>{{ loadingAction ? 'Guardando...' : (pedidoEditandoId ? 'Guardar Cambios' : 'Crear Pedido') }}</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DETALLE PEDIDO -->
+<div class="modal-overlay" *ngIf="showDetallePedido && pedidoSeleccionado" (click)="showDetallePedido = false">
+  <div class="modal modal-lg animate-fadeInUp" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>{{ pedidoSeleccionado.nombre }}</h2>
+      <button class="icon-btn" (click)="showDetallePedido = false"><mat-icon>close</mat-icon></button>
+    </div>
+    <div class="modal-body">
+      <div class="detalle-info">
+        <span class="detalle-desc">{{ pedidoSeleccionado.descripcion || 'Sin descripción' }}</span>
+        <span class="detalle-fecha text-muted">{{ pedidoSeleccionado.fecha | date:'dd/MM/yyyy' }}</span>
+        <span class="detalle-total">Total: {{ grupo?.moneda }} {{ pedidoSeleccionado.totalGeneral | number:'1.2-2' }}</span>
+      </div>
+      <div class="pedido-detalle-tabla">
+        <div class="tabla-header">
+          <span>Item</span><span>Usuario</span><span>Cantidad</span><span>P. Unitario</span><span>Subtotal</span>
+        </div>
+        <ng-container *ngFor="let item of pedidoSeleccionado.items">
+          <div class="tabla-row" *ngFor="let d of item.detalles">
+            <span>{{ item.nombre }}</span>
+            <span>{{ d.nombreUsuario }}</span>
+            <span>{{ d.cantidad }}</span>
+            <span>{{ grupo?.moneda }} {{ item.precioUnitario | number:'1.2-2' }}</span>
+            <span>{{ grupo?.moneda }} {{ d.subtotal | number:'1.2-2' }}</span>
+          </div>
+          <div class="tabla-subtotal">
+            <span>Total {{ item.nombre }}</span>
+            <span>{{ grupo?.moneda }} {{ item.totalItem | number:'1.2-2' }}</span>
+          </div>
+        </ng-container>
+        <div class="tabla-total">
+          <span>TOTAL GENERAL</span>
+          <span>{{ grupo?.moneda }} {{ pedidoSeleccionado.totalGeneral | number:'1.2-2' }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="showDetallePedido = false">Cerrar</button>
+      <button class="btn-primary" (click)="exportarPedidoExcel(pedidoSeleccionado!)">
+        <mat-icon>download</mat-icon> Exportar CSV
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PAGO PROGRAMADO -->
+<div class="modal-overlay" *ngIf="modalActivo === 'pagoProgramado'" (click)="cerrarModal()">
+  <div class="modal animate-fadeInUp" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Nuevo Pago Programado</h2>
+      <button class="icon-btn" (click)="cerrarModal()"><mat-icon>close</mat-icon></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Nombre *</label>
+        <input type="text" [(ngModel)]="pagoProgramadoForm.nombre" placeholder="Ej: Cuota mensual" class="form-input">
+      </div>
+      <div class="form-group">
+        <label>Descripción</label>
+        <input type="text" [(ngModel)]="pagoProgramadoForm.descripcion" placeholder="Opcional..." class="form-input">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Monto Carnaval</label>
+          <input type="number" [(ngModel)]="pagoProgramadoForm.montoCarnaval" placeholder="0.00" class="form-input">
+          <small class="form-hint">Va al kardex del miembro (su plata de carnaval)</small>
+        </div>
+        <div class="form-group">
+          <label>Monto Ahorro</label>
+          <input type="number" [(ngModel)]="pagoProgramadoForm.montoAhorro" placeholder="0.00" class="form-input">
+          <small class="form-hint">Fondo comunal de la comparsa</small>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Total mensual</label>
+          <input type="number"
+                 [value]="(pagoProgramadoForm.montoCarnaval || 0) + (pagoProgramadoForm.montoAhorro || 0)"
+                 class="form-input" disabled>
+        </div>
+        <div class="form-group">
+          <label>Día límite de pago *</label>
+          <input type="number" [(ngModel)]="pagoProgramadoForm.diaLimitePago" min="1" max="28" class="form-input">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Fecha inicio *</label>
+          <input type="date" [(ngModel)]="pagoProgramadoForm.fechaInicio" class="form-input">
+        </div>
+        <div class="form-group">
+          <label>Fecha fin *</label>
+          <input type="date" [(ngModel)]="pagoProgramadoForm.fechaFin" class="form-input">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Tipo de multa por mora</label>
+        <select [(ngModel)]="pagoProgramadoForm.tipoMulta" class="form-input">
+          <option value="FIJO">Monto fijo</option>
+          <option value="PORCENTAJE">Porcentaje</option>
+        </select>
+      </div>
+      <div class="form-group" *ngIf="pagoProgramadoForm.tipoMulta === 'FIJO'">
+        <label>Monto de multa *</label>
+        <input type="number" [(ngModel)]="pagoProgramadoForm.montoMulta" placeholder="0.00" class="form-input">
+      </div>
+      <div class="form-group" *ngIf="pagoProgramadoForm.tipoMulta === 'PORCENTAJE'">
+        <label>Porcentaje de multa *</label>
+        <input type="number" [(ngModel)]="pagoProgramadoForm.porcentajeMulta" placeholder="Ej: 25" class="form-input">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="cerrarModal()">Cancelar</button>
+      <button class="btn-primary" (click)="crearPagoProgramado()" [disabled]="loadingAction">
+        <mat-spinner diameter="18" *ngIf="loadingAction"></mat-spinner>
+        <span>{{ loadingAction ? 'Guardando...' : 'Crear Pago Programado' }}</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL REACTIVAR MIEMBRO -->
+<div class="modal-overlay" *ngIf="miembroReactivar" (click)="cerrarReactivarMiembro()">
+  <div class="modal animate-fadeInUp" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Reactivar a {{ miembroReactivar.nombre }} {{ miembroReactivar.apellido }}</h2>
+      <button class="icon-btn" (click)="cerrarReactivarMiembro()"><mat-icon>close</mat-icon></button>
+    </div>
+    <div class="modal-body">
+      <p class="text-muted" style="margin-bottom: 14px;">
+        Para reactivarse, el miembro debe ponerse al día con sus pagos. Elige cómo vuelve a participar:
+      </p>
+
+      <div class="opciones-reactivar">
+        <div class="opcion-card" [class.selected]="reactivarConCarnaval"
+             (click)="seleccionarOpcionReactivar(true)">
+          <mat-icon class="opcion-icon">celebration</mat-icon>
+          <div>
+            <strong>Con carnaval</strong>
+            <p>Paga el ahorro atrasado + el carnaval de la gestión actual</p>
+          </div>
+          <mat-icon *ngIf="reactivarConCarnaval">check_circle</mat-icon>
+        </div>
+        <div class="opcion-card" [class.selected]="!reactivarConCarnaval"
+             (click)="seleccionarOpcionReactivar(false)">
+          <mat-icon class="opcion-icon">savings</mat-icon>
+          <div>
+            <strong>Solo ahorro</strong>
+            <p>Paga únicamente el ahorro acumulado atrasado</p>
+          </div>
+          <mat-icon *ngIf="!reactivarConCarnaval">check_circle</mat-icon>
+        </div>
+      </div>
+
+      <div class="reactivar-resumen" *ngIf="!loadingReactivarInfo && reactivarInfo">
+        <div class="resumen-row">
+          <span>Ahorro atrasado</span>
+          <strong>{{ grupo?.moneda }} {{ reactivarInfo.ahorroAdeudado | number:'1.2-2' }}</strong>
+        </div>
+        <div class="resumen-row" *ngIf="reactivarConCarnaval">
+          <span>Carnaval de la gestión</span>
+          <strong>{{ grupo?.moneda }} {{ reactivarInfo.carnavalAdeudado | number:'1.2-2' }}</strong>
+        </div>
+        <div class="resumen-row total">
+          <span>Total a pagar ahora</span>
+          <strong>{{ grupo?.moneda }} {{ reactivarInfo.total | number:'1.2-2' }}</strong>
+        </div>
+      </div>
+      <div class="rep-loading" *ngIf="loadingReactivarInfo" style="padding: 16px 0;">
+        <mat-spinner diameter="28"></mat-spinner>
+      </div>
+
+      <div class="monto-por-miembro" *ngIf="reactivarInfo && reactivarInfo.total > 0">
+        <mat-icon>info_outline</mat-icon>
+        <span>Al confirmar se registra el pago en el kardex y en los fondos del grupo.</span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="cerrarReactivarMiembro()">Cancelar</button>
+      <button class="btn-primary" (click)="confirmarReactivarMiembro()"
+              [disabled]="loadingAction || loadingReactivarInfo || !reactivarInfo">
+        <mat-spinner diameter="18" *ngIf="loadingAction"></mat-spinner>
+        <span>{{ loadingAction ? 'Registrando...' : 'Confirmar y registrar pago' }}</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL AÑADIR MIEMBRO A PAGO PROGRAMADO -->
+<div class="modal-overlay" *ngIf="pagoParaAgregarMiembro" (click)="cerrarAgregarMiembroPago()">
+  <div class="modal animate-fadeInUp" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Añadir miembro a "{{ pagoParaAgregarMiembro.nombre }}"</h2>
+      <button class="icon-btn" (click)="cerrarAgregarMiembroPago()"><mat-icon>close</mat-icon></button>
+    </div>
+    <div class="modal-body">
+      <p class="text-muted" style="margin-bottom: 14px;">
+        Se generarán sus cuotas desde el inicio del pago programado hasta hoy sin mora
+        (los meses ya pasados quedan exentos de multa); del mes actual en adelante la mora
+        aplica normalmente si no paga a tiempo.
+      </p>
+
+      <div class="rep-loading" *ngIf="loadingMiembrosFaltantes" style="padding: 16px 0;">
+        <mat-spinner diameter="28"></mat-spinner>
+      </div>
+
+      <div class="faltante-lista" *ngIf="!loadingMiembrosFaltantes && miembrosFaltantesPago.length > 0">
+        <div class="faltante-row" *ngFor="let m of miembrosFaltantesPago">
+          <span>{{ m.nombre }} {{ m.apellido }}</span>
+          <button class="btn-sm btn-primary-sm" [disabled]="loadingAction" (click)="confirmarAgregarMiembroAPago(m)">
+            <mat-icon>person_add</mat-icon> Añadir
+          </button>
+        </div>
+      </div>
+
+      <div class="empty-state" *ngIf="!loadingMiembrosFaltantes && miembrosFaltantesPago.length === 0">
+        <mat-icon class="empty-icon">check_circle</mat-icon>
+        <p>Todos los miembros activos del grupo ya están en este pago programado.</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="cerrarAgregarMiembroPago()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL KARDEX DETALLE -->
+<div class="modal-overlay" *ngIf="showKardexDetalle" (click)="showKardexDetalle = false">
+  <div class="modal animate-fadeInUp" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Kardex de {{ miembroSeleccionado?.nombre }} {{ miembroSeleccionado?.apellido }}</h2>
+      <button class="icon-btn" (click)="showKardexDetalle = false"><mat-icon>close</mat-icon></button>
+    </div>
+    <div class="modal-body" *ngIf="kardexSeleccionado">
+      <div class="kardex-grid">
+        <div class="kardex-stat aportes">
+          <span class="stat-label">Total Aportes</span>
+          <span class="stat-value">+{{ grupo?.moneda }} {{ kardexSeleccionado.totalAportes | number:'1.2-2' }}</span>
+        </div>
+        <div class="kardex-stat gastos-comp">
+          <span class="stat-label">Gastos Compartidos</span>
+          <span class="stat-value">-{{ grupo?.moneda }} {{ kardexSeleccionado.totalGastosCompartidos | number:'1.2-2' }}</span>
+        </div>
+        <div class="kardex-stat gastos-ind">
+          <span class="stat-label">Gastos Individuales</span>
+          <span class="stat-value">-{{ grupo?.moneda }} {{ kardexSeleccionado.totalGastosIndividuales | number:'1.2-2' }}</span>
+        </div>
+        <div class="kardex-stat multas-stat">
+          <span class="stat-label">Multas Pendientes</span>
+          <span class="stat-value">{{ grupo?.moneda }} {{ kardexSeleccionado.totalMultas | number:'1.2-2' }}</span>
+        </div>
+        <div class="kardex-stat saldo" [class.positivo]="kardexSeleccionado.saldoActual >= 0" [class.negativo]="kardexSeleccionado.saldoActual < 0">
+          <span class="stat-label">Saldo Actual</span>
+          <span class="stat-value">{{ grupo?.moneda }} {{ kardexSeleccionado.saldoActual | number:'1.2-2' }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-primary" (click)="showKardexDetalle = false">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DETALLE MOVIMIENTO -->
+<div class="modal-overlay" *ngIf="showDetalleMovimiento" (click)="showDetalleMovimiento = false">
+  <div class="modal animate-fadeInUp" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>{{ getTipoIcon(movimientoSeleccionado?.tipo || '') }} Detalle de {{ getTipoLabel(movimientoSeleccionado?.tipo || '') }}</h2>
+      <button class="icon-btn" (click)="showDetalleMovimiento = false"><mat-icon>close</mat-icon></button>
+    </div>
+    <div class="modal-body" *ngIf="movimientoSeleccionado">
+      <div class="detalle-info">
+        <span class="detalle-desc">{{ movimientoSeleccionado.descripcion || 'Sin descripción' }}</span>
+        <span class="detalle-fecha text-muted">{{ movimientoSeleccionado.fecha | date:'dd/MM/yyyy' }}</span>
+        <span class="detalle-total">Total: {{ grupo?.moneda }} {{ movimientoSeleccionado.montoTotal | number:'1.2-2' }}</span>
+      </div>
+      <div class="detalle-lista">
+        <div class="detalle-item" *ngFor="let d of detalleMovimiento">
+          <div class="detalle-usuario">
+            <div class="mini-avatar">{{ getInitiales(d.nombreUsuario.split(' ')[0], d.nombreUsuario.split(' ')[1] || '') }}</div>
+            <span>{{ d.nombreUsuario }}</span>
+          </div>
+          <div class="detalle-nums">
+            <span class="detalle-cantidad" *ngIf="movimientoSeleccionado.tipo === 'GASTO_INDIVIDUAL'">x{{ d.cantidad }}</span>
+            <span class="detalle-monto">{{ grupo?.moneda }} {{ d.monto | number:'1.2-2' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-primary" (click)="showDetalleMovimiento = false">Cerrar</button>
+    </div>
+  </div>
+</div>

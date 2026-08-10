@@ -1,0 +1,91 @@
+<div class="metricas-wrapper">
+
+  <!-- HEADER -->
+  <div class="met-header">
+    <button class="icon-btn" (click)="volver()" title="Volver">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <div class="met-title">
+      <h1>🧠 Métricas del modelo IA</h1>
+      <p>Evidencia de evaluación del clasificador de intenciones</p>
+    </div>
+  </div>
+
+  <!-- LOADING -->
+  <div class="met-loading" *ngIf="loading">
+    <mat-spinner diameter="48"></mat-spinner>
+    <p>Cargando métricas...</p>
+  </div>
+
+  <!-- NO DISPONIBLE -->
+  <div class="met-empty" *ngIf="!loading && metricas && !metricas.disponible">
+    <div class="empty-icon">⚠️</div>
+    <h2>Métricas no disponibles</h2>
+    <p>{{ metricas.error || 'Entrena el modelo para generar las métricas.' }}</p>
+  </div>
+
+  <!-- CONTENIDO -->
+  <div class="met-content" *ngIf="!loading && metricas && metricas.disponible">
+
+    <!-- KPIs globales -->
+    <div class="met-kpis">
+      <div class="kpi destacado">
+        <span class="kpi-label">Accuracy</span>
+        <span class="kpi-value">{{ pct(metricas.accuracy) }}</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi-label">F1 (macro)</span>
+        <span class="kpi-value">{{ pct(metricas.macroAvgF1) }}</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi-label">F1 (ponderado)</span>
+        <span class="kpi-value">{{ pct(metricas.weightedAvgF1) }}</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi-label">Cross-validation</span>
+        <span class="kpi-value">{{ pct(metricas.crossValMean) }}</span>
+        <span class="kpi-sub" *ngIf="metricas.crossValStd != null">± {{ pct(metricas.crossValStd) }}</span>
+      </div>
+    </div>
+
+    <!-- Resumen dataset -->
+    <div class="met-resumen">
+      <span><strong>{{ metricas.totalIntenciones }}</strong> intenciones</span>
+      <span><strong>{{ metricas.totalEjemplos }}</strong> ejemplos totales</span>
+      <span><strong>{{ metricas.ejemplosEntrenamiento }}</strong> entrenamiento</span>
+      <span><strong>{{ metricas.ejemplosPrueba }}</strong> prueba</span>
+    </div>
+
+    <!-- Tabla por intención -->
+    <div class="met-card">
+      <h3>Desempeño por intención</h3>
+      <div class="tabla-wrapper">
+        <table class="met-tabla">
+          <thead>
+            <tr>
+              <th>Intención</th>
+              <th>Precision</th>
+              <th>Recall</th>
+              <th>F1-Score</th>
+              <th>Soporte</th>
+              <th>Ejemplos</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let f of filas">
+              <td class="intencion">{{ f.intencion }}</td>
+              <td>{{ pct(f.precision) }}</td>
+              <td>{{ pct(f.recall) }}</td>
+              <td>
+                <span class="f1-badge" [style.background]="colorF1(f.f1)">{{ pct(f.f1) }}</span>
+              </td>
+              <td>{{ f.support }}</td>
+              <td>{{ f.ejemplos }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>

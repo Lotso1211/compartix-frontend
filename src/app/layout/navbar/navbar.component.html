@@ -1,0 +1,28 @@
+<nav class="navbar">
+  <div class="navbar-brand" routerLink="/app">
+    <span class="logo-icon">⬡</span>
+    <span class="logo-text">Comparti<span class="logo-x">X</span></span>
+  </div>
+
+  <div class="navbar-actions">
+    <button mat-icon-button [matMenuTriggerFor]="menuUsuario" class="user-btn">
+      <mat-icon>account_circle</mat-icon>
+    </button>
+
+    <mat-menu #menuUsuario="matMenu" xPosition="before">
+      <div class="menu-header">
+        <strong>{{ usuario?.nombre }} {{ usuario?.apellido }}</strong>
+        <small>{{ usuario?.email }}</small>
+      </div>
+      <mat-divider></mat-divider>
+      <button mat-menu-item (click)="irAPerfil()">
+        <mat-icon>manage_accounts</mat-icon>
+        <span>Mi perfil</span>
+      </button>
+      <button mat-menu-item (click)="cerrarSesion()" class="menu-logout">
+        <mat-icon>logout</mat-icon>
+        <span>Cerrar sesión</span>
+      </button>
+    </mat-menu>
+  </div>
+</nav>

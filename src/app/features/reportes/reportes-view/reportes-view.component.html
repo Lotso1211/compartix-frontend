@@ -1,0 +1,147 @@
+<div class="reportes-wrapper">
+
+  <!-- HEADER -->
+  <div class="rep-header no-print">
+    <button class="icon-btn" (click)="volver()" title="Volver">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <div class="rep-title">
+      <h1>Reportes</h1>
+      <p *ngIf="grupo">{{ grupo.nombre }}</p>
+    </div>
+    <div class="rep-actions">
+      <button class="btn-export" (click)="exportarExcel()" [disabled]="loading || !hayDatos">
+        <mat-icon>table_view</mat-icon> Excel
+      </button>
+      <button class="btn-export pdf" (click)="exportarPDF()" [disabled]="loading || !hayDatos">
+        <mat-icon>picture_as_pdf</mat-icon> PDF
+      </button>
+    </div>
+  </div>
+
+  <!-- LOADING -->
+  <div class="rep-loading" *ngIf="loading">
+    <mat-spinner diameter="48"></mat-spinner>
+    <p>Generando reportes...</p>
+  </div>
+
+  <!-- EMPTY -->
+  <div class="rep-empty" *ngIf="!loading && !hayDatos">
+    <mat-icon class="empty-icon">receipt_long</mat-icon>
+    <h2>Sin datos para reportar</h2>
+    <p>Registra movimientos en el grupo para ver los reportes.</p>
+  </div>
+
+  <!-- CONTENIDO -->
+  <div class="rep-content" *ngIf="!loading && hayDatos">
+
+    <!-- Título impreso (solo PDF) -->
+    <div class="print-only print-title">
+      <h1>Reporte financiero — {{ grupo?.nombre }}</h1>
+      <p>Generado el {{ today | date:'dd/MM/yyyy HH:mm' }}</p>
+    </div>
+
+    <!-- KPIs -->
+    <div class="rep-kpis" *ngIf="saldo">
+      <div class="kpi ingresos">
+        <mat-icon>trending_up</mat-icon>
+        <div class="kpi-info">
+          <span class="kpi-label">Ingresos</span>
+          <span class="kpi-value">{{ moneda }} {{ saldo.totalIngresos | number:'1.2-2' }}</span>
+        </div>
+      </div>
+      <div class="kpi egresos">
+        <mat-icon>trending_down</mat-icon>
+        <div class="kpi-info">
+          <span class="kpi-label">Egresos</span>
+          <span class="kpi-value">{{ moneda }} {{ saldo.totalEgresos | number:'1.2-2' }}</span>
+        </div>
+      </div>
+      <div class="kpi multas">
+        <mat-icon>gavel</mat-icon>
+        <div class="kpi-info">
+          <span class="kpi-label">Multas</span>
+          <span class="kpi-value">{{ moneda }} {{ saldo.totalMultas | number:'1.2-2' }}</span>
+        </div>
+      </div>
+      <div class="kpi carnaval">
+        <mat-icon>celebration</mat-icon>
+        <div class="kpi-info">
+          <span class="kpi-label">Fondo Carnaval</span>
+          <span class="kpi-value">{{ moneda }} {{ (saldo.saldoCarnaval || 0) | number:'1.2-2' }}</span>
+        </div>
+      </div>
+      <div class="kpi ahorro">
+        <mat-icon>savings</mat-icon>
+        <div class="kpi-info">
+          <span class="kpi-label">Fondo Ahorro</span>
+          <span class="kpi-value">{{ moneda }} {{ (saldo.saldoAhorro || 0) | number:'1.2-2' }}</span>
+        </div>
+      </div>
+      <div class="kpi disponible">
+        <mat-icon>account_balance</mat-icon>
+        <div class="kpi-info">
+          <span class="kpi-label">Saldo Disponible</span>
+          <span class="kpi-value">{{ moneda }} {{ saldo.saldoDisponible | number:'1.2-2' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- GRÁFICOS -->
+    <div class="rep-grid">
+      <div class="rep-card wide">
+        <h3>Aportes vs Gastos por miembro</h3>
+        <div class="chart-box"><canvas id="chartBarras"></canvas></div>
+      </div>
+
+      <div class="rep-card wide">
+        <h3>Evolución del saldo del grupo</h3>
+        <div class="chart-box"><canvas id="chartLinea"></canvas></div>
+      </div>
+
+      <div class="rep-card">
+        <h3>Distribución por tipo</h3>
+        <div class="chart-box"><canvas id="chartTorta"></canvas></div>
+      </div>
+
+      <div class="rep-card" *ngIf="hayFondos">
+        <h3>Desglose por fondo (Carnaval / Ahorro)</h3>
+        <div class="chart-box"><canvas id="chartFondos"></canvas></div>
+      </div>
+    </div>
+
+    <!-- TABLA DETALLE -->
+    <div class="rep-card">
+      <h3>Detalle por miembro</h3>
+      <div class="tabla-wrapper">
+        <table class="rep-tabla">
+          <thead>
+            <tr>
+              <th>Miembro</th>
+              <th>Aportes</th>
+              <th>Ahorro</th>
+              <th>G. Compartidos</th>
+              <th>G. Individuales</th>
+              <th>Multas</th>
+              <th>Saldo</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let k of kardexList">
+              <td>{{ k.usuario.nombre }} {{ k.usuario.apellido }}</td>
+              <td class="pos">+{{ k.totalAportes | number:'1.2-2' }}</td>
+              <td class="pos">+{{ (k.totalAhorro || 0) | number:'1.2-2' }}</td>
+              <td class="neg">-{{ k.totalGastosCompartidos | number:'1.2-2' }}</td>
+              <td class="neg">-{{ k.totalGastosIndividuales | number:'1.2-2' }}</td>
+              <td>{{ k.totalMultas | number:'1.2-2' }}</td>
+              <td [class.pos]="k.saldoActual >= 0" [class.neg]="k.saldoActual < 0">
+                {{ k.saldoActual | number:'1.2-2' }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
