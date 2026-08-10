@@ -20,25 +20,36 @@
   top: 0;
   z-index: 100;
   box-shadow: var(--shadow);
+
+  @media (max-width: 640px) {
+    padding: 0 12px;
+  }
 }
 
 .navbar-left {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
 }
 
 .logo {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
 
-  .logo-icon { font-size: 24px; }
+  .logo-icon { font-size: 24px; flex-shrink: 0; }
   .logo-text {
     font-family: 'Space Grotesk', sans-serif;
     font-size: 22px;
     font-weight: 700;
     color: var(--text-primary);
+    white-space: nowrap;
+
+    @media (max-width: 480px) {
+      font-size: 18px;
+    }
   }
   .logo-x { color: var(--primary); }
 }
@@ -47,6 +58,10 @@
   display: flex;
   align-items: center;
   gap: 12px;
+
+  @media (max-width: 640px) {
+    gap: 6px;
+  }
 }
 
 .btn-ia-nav {
@@ -63,6 +78,7 @@
   font-size: 13px;
   font-weight: 600;
   transition: all 0.2s;
+  flex-shrink: 0;
 
   mat-icon { font-size: 18px; width: 18px; height: 18px; }
   &:hover { background: rgba(14, 107, 79, 0.2); transform: translateY(-1px); }
@@ -72,6 +88,13 @@
     background: rgba(51, 65, 85, 0.08);
     color: #334155;
     &:hover { background: rgba(51, 65, 85, 0.16); }
+  }
+
+  // En pantallas chicas solo se muestra el ícono, sin el texto, para que
+  // quepan todos los botones de la barra sin desbordar.
+  @media (max-width: 640px) {
+    padding: 8px;
+    .btn-label { display: none; }
   }
 }
 
@@ -153,12 +176,18 @@
   padding: 24px;
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
+
+  @media (max-width: 640px) {
+    padding: 16px;
+    gap: 14px;
+  }
 }
 
 .grupo-header-left {
   display: flex;
   align-items: flex-start;
   gap: 16px;
+  min-width: 0;
 }
 
 .grupo-avatar-big {
@@ -227,6 +256,23 @@
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+
+  // En móvil, en vez de amontonar 9 botones envueltos en varias filas,
+  // se convierte en una tira horizontal deslizable de una sola fila.
+  @media (max-width: 640px) {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    width: 100%;
+    padding-bottom: 2px;
+    margin: 0 -16px;
+    padding-left: 16px;
+    padding-right: 16px;
+    width: calc(100% + 32px);
+
+    &::-webkit-scrollbar { display: none; }
+  }
 }
 
 .btn-action {
@@ -240,6 +286,13 @@
   font-size: 13px;
   font-weight: 600;
   transition: all 0.2s;
+  white-space: nowrap;
+
+  @media (max-width: 640px) {
+    flex-shrink: 0;
+    padding: 9px 14px;
+    font-size: 12.5px;
+  }
 
   // Estilo base neutro: acciones cotidianas, todas con la misma jerarquía visual.
   background: var(--bg-primary);
@@ -402,6 +455,10 @@
 .tab-content {
   padding: 24px;
   min-height: 300px;
+
+  @media (max-width: 640px) {
+    padding: 14px;
+  }
 }
 
 // ============================================================
@@ -427,6 +484,11 @@
     border-color: var(--primary);
     transform: translateX(4px);
   }
+
+  @media (max-width: 640px) {
+    gap: 10px;
+    padding: 12px;
+  }
 }
 
 .mov-icon { font-size: 28px; }
@@ -435,6 +497,12 @@
   flex-shrink: 0;
   color: var(--text-muted);
   &:hover { color: #e53935; }
+
+  @media (max-width: 640px) {
+    width: 28px;
+    height: 28px;
+    mat-icon { font-size: 16px; }
+  }
 }
 
 .mov-fecha-col {
@@ -443,6 +511,7 @@
   align-items: center;
   min-width: 42px;
   text-align: center;
+  flex-shrink: 0;
 
   .mov-dia {
     font-size: 22px;
@@ -456,10 +525,17 @@
     text-transform: uppercase;
     letter-spacing: 0.3px;
   }
+
+  @media (max-width: 640px) {
+    min-width: 34px;
+    .mov-dia { font-size: 18px; }
+    .mov-mes-anio { font-size: 9px; }
+  }
 }
 
 .mov-info {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -468,6 +544,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
+    flex-wrap: wrap;
   }
 
   .mov-tipo {
@@ -494,6 +571,9 @@
     font-size: 14px;
     color: var(--text-primary);
     font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .mov-fecha { font-size: 12px; }
@@ -503,13 +583,31 @@
     display: flex;
     align-items: center;
     gap: 3px;
-    mat-icon { font-size: 12px; width: 12px; height: 12px; }
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    mat-icon { font-size: 12px; width: 12px; height: 12px; flex-shrink: 0; }
+  }
+
+  @media (max-width: 640px) {
+    .mov-tipo { font-size: 11px; }
+    .mov-desc { font-size: 13px; }
+    // En pantallas chicas se prioriza tipo/monto/descripción; quién lo
+    // registró se oculta para no saturar la fila (sigue visible en el
+    // detalle del movimiento al tocarlo).
+    .mov-reg { display: none; }
   }
 }
 
 .mov-monto {
   font-size: 16px;
   font-weight: 700;
+  flex-shrink: 0;
+  text-align: right;
+
+  @media (max-width: 640px) {
+    font-size: 13px;
+  }
 }
 
 .mov-usuario {
@@ -519,11 +617,19 @@
   font-size: 13px;
   font-weight: 600;
   color: var(--primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 
   mat-icon {
     font-size: 14px;
     width: 14px;
     height: 14px;
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 640px) {
+    font-size: 12px;
   }
 }
 
@@ -1447,6 +1553,17 @@
   flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 16px;
+
+  @media (max-width: 640px) {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    margin: 0 -14px 16px;
+    padding: 0 14px;
+
+    &::-webkit-scrollbar { display: none; }
+  }
 }
 
 .filtro-btn {
@@ -1463,6 +1580,8 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
 
   mat-icon { font-size: 15px; width: 15px; height: 15px; }
 
