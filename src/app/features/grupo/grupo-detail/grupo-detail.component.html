@@ -156,6 +156,54 @@
               <button class="filtro-btn" [class.activo]="filtroMovimiento === 'MULTA'" (click)="filtroMovimiento = 'MULTA'"><mat-icon>gavel</mat-icon> Multas</button>
               <button class="filtro-btn" *ngIf="esDirectiva" [class.activo]="filtroMovimiento === 'INGRESO_DIRECTO'" (click)="filtroMovimiento = 'INGRESO_DIRECTO'"><mat-icon>account_balance</mat-icon> Ingresos</button>
             </div>
+
+            <div class="mov-filtros-avanzados">
+              <div class="filtro-campo">
+                <label>Desde</label>
+                <input type="date" class="filtro-input" [(ngModel)]="filtroFechaDesde" [max]="filtroFechaHasta || null">
+              </div>
+              <div class="filtro-campo">
+                <label>Hasta</label>
+                <input type="date" class="filtro-input" [(ngModel)]="filtroFechaHasta" [min]="filtroFechaDesde || null">
+              </div>
+              <div class="filtro-campo">
+                <label>Día</label>
+                <select class="filtro-select" [(ngModel)]="filtroDiaSemana">
+                  <option value="TODOS">Todos</option>
+                  <option *ngFor="let d of diasSemana" [value]="d.value">{{ d.label }}</option>
+                </select>
+              </div>
+              <div class="filtro-campo" *ngIf="miembrosAfectadosDisponibles.length > 0">
+                <label>Miembro</label>
+                <select class="filtro-select" [(ngModel)]="filtroMiembroAfectado">
+                  <option value="TODOS">Todos</option>
+                  <option *ngFor="let nombre of miembrosAfectadosDisponibles" [value]="nombre">{{ nombre }}</option>
+                </select>
+              </div>
+              <div class="filtro-campo" *ngIf="registradoresDisponibles.length > 1">
+                <label>Registrado por</label>
+                <select class="filtro-select" [(ngModel)]="filtroRegistradoPor">
+                  <option value="TODOS">Todos</option>
+                  <option *ngFor="let r of registradoresDisponibles" [value]="r.id">{{ r.nombre }}</option>
+                </select>
+              </div>
+              <div class="filtro-campo" *ngIf="fondosDisponibles.length > 0">
+                <label>Fondo</label>
+                <select class="filtro-select" [(ngModel)]="filtroFondo">
+                  <option value="TODOS">Todos</option>
+                  <option *ngFor="let f of fondosDisponibles" [value]="f">{{ f === 'CARNAVAL' ? 'Carnaval' : f === 'AHORRO' ? 'Ahorro' : 'Mixto' }}</option>
+                </select>
+              </div>
+              <button class="filtro-btn filtro-limpiar" *ngIf="hayFiltrosAvanzadosActivos" (click)="limpiarFiltrosMovimientos()">
+                <mat-icon>close</mat-icon> Limpiar
+              </button>
+            </div>
+
+            <div class="empty-state empty-state-filtros" *ngIf="getMovimientosFiltrados().length === 0">
+              <mat-icon class="empty-icon">search_off</mat-icon>
+              <p>Ningún movimiento coincide con estos filtros</p>
+            </div>
+
             <div class="movimiento-item"
                  *ngFor="let mov of getMovimientosFiltrados()"
                  [class.clickeable]="mov.tipo === 'GASTO_INDIVIDUAL' || mov.tipo === 'GASTO_COMPARTIDO'"

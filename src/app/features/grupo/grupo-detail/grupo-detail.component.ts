@@ -62,6 +62,21 @@ export class GrupoDetailComponent implements OnInit {
   detalleMovimiento: any[] = [];
   showDetalleMovimiento = false;
   filtroMovimiento: string = 'TODOS';
+  filtroFondo: string = 'TODOS';
+  filtroFechaDesde: string = '';
+  filtroFechaHasta: string = '';
+  filtroDiaSemana: string = 'TODOS';
+  filtroMiembroAfectado: string = 'TODOS';
+  filtroRegistradoPor: string = 'TODOS';
+  diasSemana = [
+    { value: '1', label: 'Lunes' },
+    { value: '2', label: 'Martes' },
+    { value: '3', label: 'Miércoles' },
+    { value: '4', label: 'Jueves' },
+    { value: '5', label: 'Viernes' },
+    { value: '6', label: 'Sábado' },
+    { value: '0', label: 'Domingo' }
+  ];
   showConfirmEliminar = false;
 
   // Pedidos
@@ -484,8 +499,65 @@ export class GrupoDetailComponent implements OnInit {
   }
 
   getMovimientosFiltrados(): Movimiento[] {
-    if (this.filtroMovimiento === 'TODOS') return this.movimientos;
-    return this.movimientos.filter(m => m.tipo === this.filtroMovimiento);
+    return this.movimientos.filter(m => {
+      if (this.filtroMovimiento !== 'TODOS' && m.tipo !== this.filtroMovimiento) return false;
+      if (this.filtroFondo !== 'TODOS' && m.fondo !== this.filtroFondo) return false;
+      if (this.filtroMiembroAfectado !== 'TODOS' && !this.nombresAfectados(m).includes(this.filtroMiembroAfectado)) return false;
+      if (this.filtroRegistradoPor !== 'TODOS' && String(m.registradoPor?.id) !== this.filtroRegistradoPor) return false;
+      if (this.filtroFechaDesde && m.fecha < this.filtroFechaDesde) return false;
+      if (this.filtroFechaHasta && m.fecha > this.filtroFechaHasta) return false;
+      if (this.filtroDiaSemana !== 'TODOS' && this.diaSemanaDe(m.fecha) !== this.filtroDiaSemana) return false;
+      return true;
+    });
+  }
+
+  private diaSemanaDe(fecha: string): string {
+    const [anio, mes, dia] = fecha.split('-').map(Number);
+    return new Date(anio, mes - 1, dia).getDay().toString();
+  }
+
+  // Un GASTO_COMPARTIDO/GASTO_INDIVIDUAL trae usuarioAfectado como varios
+  // nombres separados por coma (uno por cada miembro afectado en ese movimiento).
+  private nombresAfectados(m: Movimiento): string[] {
+    if (!m.usuarioAfectado) return [];
+    return m.usuarioAfectado.split(',').map(n => n.trim()).filter(Boolean);
+  }
+
+  get miembrosAfectadosDisponibles(): string[] {
+    const set = new Set<string>();
+    this.movimientos.forEach(m => this.nombresAfectados(m).forEach(n => set.add(n)));
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }
+
+  get registradoresDisponibles(): { id: number; nombre: string }[] {
+    const map = new Map<number, string>();
+    this.movimientos.forEach(m => {
+      if (m.registradoPor) map.set(m.registradoPor.id, `${m.registradoPor.nombre} ${m.registradoPor.apellido}`);
+    });
+    return Array.from(map.entries())
+      .map(([id, nombre]) => ({ id, nombre }))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre));
+  }
+
+  get fondosDisponibles(): TipoFondo[] {
+    const set = new Set<TipoFondo>();
+    this.movimientos.forEach(m => { if (m.fondo) set.add(m.fondo); });
+    return Array.from(set);
+  }
+
+  get hayFiltrosAvanzadosActivos(): boolean {
+    return this.filtroFondo !== 'TODOS' || this.filtroMiembroAfectado !== 'TODOS' ||
+      this.filtroRegistradoPor !== 'TODOS' || !!this.filtroFechaDesde || !!this.filtroFechaHasta ||
+      this.filtroDiaSemana !== 'TODOS';
+  }
+
+  limpiarFiltrosMovimientos(): void {
+    this.filtroFondo = 'TODOS';
+    this.filtroMiembroAfectado = 'TODOS';
+    this.filtroRegistradoPor = 'TODOS';
+    this.filtroFechaDesde = '';
+    this.filtroFechaHasta = '';
+    this.filtroDiaSemana = 'TODOS';
   }
 
   getTotalGastoIndividual(): number {
