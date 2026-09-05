@@ -113,6 +113,7 @@ export class GrupoDetailComponent implements OnInit {
   gastoIndividualForm = { descripcion: '', precioUnitario: 0, fecha: '', cantidades: {} as {[key: number]: number}, fondo: 'CARNAVAL' as TipoFondo, montoCarnavalManual: 0, montoAhorroManual: 0 };
   multaForm = { usuarioId: 0, motivo: '', monto: 0, fecha: '', periodoMes: new Date().getMonth() + 1, periodoAnio: new Date().getFullYear() };
   ingresoDirectoForm = { descripcion: '', monto: 0, fecha: '', fondo: 'CARNAVAL' as TipoFondo };
+  gastoDirectoForm = { descripcion: '', monto: 0, fecha: '', fondo: 'CARNAVAL' as TipoFondo, montoCarnavalManual: 0, montoAhorroManual: 0 };
   alertasForm: { alertaSaldoCarnaval: number | null, alertaSaldoAhorro: number | null } = { alertaSaldoCarnaval: null, alertaSaldoAhorro: null };
 
   pedidoForm = {
@@ -232,6 +233,7 @@ export class GrupoDetailComponent implements OnInit {
     this.gastoIndividualForm.fecha = hoy;
     this.multaForm.fecha = hoy;
     this.ingresoDirectoForm.fecha = hoy;
+    this.gastoDirectoForm.fecha = hoy;
     this.pedidoForm.fecha = hoy;
     this.modalActivo = tipo;
   }
@@ -249,6 +251,9 @@ export class GrupoDetailComponent implements OnInit {
     this.gastoIndividualForm.montoAhorroManual = 0;
     this.aporteForm.fondo = 'CARNAVAL';
     this.ingresoDirectoForm.fondo = 'CARNAVAL';
+    this.gastoDirectoForm.fondo = 'CARNAVAL';
+    this.gastoDirectoForm.montoCarnavalManual = 0;
+    this.gastoDirectoForm.montoAhorroManual = 0;
     this.pedidoEditandoId = null;
   }
 
@@ -444,6 +449,38 @@ export class GrupoDetailComponent implements OnInit {
     });
   }
 
+  registrarGastoDirecto(): void {
+    if (!this.esDirectiva) return;
+    if (!this.gastoDirectoForm.monto) return;
+    if (this.gastoDirectoForm.fondo === 'MIXTO' && this.montoRestanteMixto(this.gastoDirectoForm.montoCarnavalManual, this.gastoDirectoForm.montoAhorroManual, this.gastoDirectoForm.monto) !== 0) {
+      this.snackBar.open('El reparto entre Carnaval y Ahorro debe sumar el monto total', 'Cerrar', { duration: 3000 });
+      return;
+    }
+    this.loadingAction = true;
+    this.movimientoService.registrarGastoDirecto(this.grupoId, {
+      descripcion: this.gastoDirectoForm.descripcion,
+      monto: this.gastoDirectoForm.monto,
+      fecha: this.gastoDirectoForm.fecha,
+      fondo: this.gastoDirectoForm.fondo,
+      ...(this.gastoDirectoForm.fondo === 'MIXTO' ? {
+        montoCarnaval: this.gastoDirectoForm.montoCarnavalManual,
+        montoAhorro: this.gastoDirectoForm.montoAhorroManual
+      } : {})
+    }).subscribe({
+      next: (m) => {
+        this.movimientos.unshift(m);
+        this.cerrarModal();
+        this.loadingAction = false;
+        this.snackBar.open('✅ Gasto directo registrado', 'Cerrar', { duration: 3000 });
+        this.grupoService.obtenerSaldoGrupo(this.grupoId).subscribe(s => this.saldo = s);
+      },
+      error: (err) => {
+        this.loadingAction = false;
+        this.snackBar.open(err.error?.message || 'Error al registrar', 'Cerrar', { duration: 3000 });
+      }
+    });
+  }
+
   toggleMiembro(miembroId: number): void {
     const idx = this.gastoCompartidoForm.usuarioIds.indexOf(miembroId);
     if (idx === -1) this.gastoCompartidoForm.usuarioIds.push(miembroId);
@@ -471,7 +508,8 @@ export class GrupoDetailComponent implements OnInit {
       'GASTO_COMPARTIDO': '#F59E0B',
       'GASTO_INDIVIDUAL': '#6C63FF',
       'MULTA': '#EF4444',
-      'INGRESO_DIRECTO': '#10B981'
+      'INGRESO_DIRECTO': '#10B981',
+      'GASTO_DIRECTO': '#EA580C'
     };
     return colors[tipo] || '#64748B';
   }
@@ -482,7 +520,8 @@ export class GrupoDetailComponent implements OnInit {
       'GASTO_COMPARTIDO': '🤝',
       'GASTO_INDIVIDUAL': '🛍️',
       'MULTA': '⚠️',
-      'INGRESO_DIRECTO': '🏦'
+      'INGRESO_DIRECTO': '🏦',
+      'GASTO_DIRECTO': '💸'
     };
     return icons[tipo] || '📋';
   }
@@ -493,7 +532,8 @@ export class GrupoDetailComponent implements OnInit {
       'GASTO_COMPARTIDO': 'Gasto Compartido',
       'GASTO_INDIVIDUAL': 'Gasto Individual',
       'MULTA': 'Multa',
-      'INGRESO_DIRECTO': 'Ingreso Directo'
+      'INGRESO_DIRECTO': 'Ingreso Directo',
+      'GASTO_DIRECTO': 'Gasto Directo'
     };
     return labels[tipo] || tipo;
   }

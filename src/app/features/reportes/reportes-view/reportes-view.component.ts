@@ -204,7 +204,8 @@ export class ReportesViewComponent implements OnInit, OnDestroy {
       GASTO_COMPARTIDO:  { label: 'Gastos compartidos', color: '#EF4444' },
       GASTO_INDIVIDUAL:  { label: 'Gastos individuales', color: '#F59E0B' },
       MULTA:             { label: 'Multas', color: '#8B5CF6' },
-      INGRESO_DIRECTO:   { label: 'Ingresos directos', color: '#00D4FF' }
+      INGRESO_DIRECTO:   { label: 'Ingresos directos', color: '#00D4FF' },
+      GASTO_DIRECTO:     { label: 'Gastos directos', color: '#EA580C' }
     };
 
     const totales: Record<string, number> = {};

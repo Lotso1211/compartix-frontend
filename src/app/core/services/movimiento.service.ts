@@ -8,7 +8,8 @@ import {
   RegistrarGastoCompartidoRequest,
   RegistrarGastoIndividualRequest,
   RegistrarMultaRequest,
-  RegistrarIngresoDirectoRequest
+  RegistrarIngresoDirectoRequest,
+  RegistrarGastoDirectoRequest
 } from '../models/movimiento.model';
 
 @Injectable({
@@ -52,6 +53,12 @@ obtenerDetalleMovimiento(grupoId: number, movimientoId: number): Observable<any[
 registrarIngresoDirecto(grupoId: number, request: RegistrarIngresoDirectoRequest): Observable<Movimiento> {
   return this.http.post<Movimiento>(
     `${environment.apiUrl}/grupos/${grupoId}/movimientos/ingreso-directo`,
+    request
+  );
+}
+registrarGastoDirecto(grupoId: number, request: RegistrarGastoDirectoRequest): Observable<Movimiento> {
+  return this.http.post<Movimiento>(
+    `${environment.apiUrl}/grupos/${grupoId}/movimientos/gasto-directo`,
     request
   );
 }

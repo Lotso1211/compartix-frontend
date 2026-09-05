@@ -75,6 +75,9 @@
         <button class="btn-action ingreso-directo" (click)="abrirModal('ingresoDirecto')">
           <mat-icon>account_balance</mat-icon> Ingreso Directo
         </button>
+        <button class="btn-action gasto-directo" (click)="abrirModal('gastoDirecto')">
+          <mat-icon>money_off</mat-icon> Gasto Directo
+        </button>
         <button class="btn-action eliminar" (click)="confirmarEliminar()">
           <mat-icon>delete_forever</mat-icon> Eliminar Grupo
         </button>
@@ -155,6 +158,7 @@
               <button class="filtro-btn" [class.activo]="filtroMovimiento === 'GASTO_INDIVIDUAL'" (click)="filtroMovimiento = 'GASTO_INDIVIDUAL'"><mat-icon>shopping_bag</mat-icon> Individuales</button>
               <button class="filtro-btn" [class.activo]="filtroMovimiento === 'MULTA'" (click)="filtroMovimiento = 'MULTA'"><mat-icon>gavel</mat-icon> Multas</button>
               <button class="filtro-btn" *ngIf="esDirectiva" [class.activo]="filtroMovimiento === 'INGRESO_DIRECTO'" (click)="filtroMovimiento = 'INGRESO_DIRECTO'"><mat-icon>account_balance</mat-icon> Ingresos</button>
+              <button class="filtro-btn" *ngIf="esDirectiva" [class.activo]="filtroMovimiento === 'GASTO_DIRECTO'" (click)="filtroMovimiento = 'GASTO_DIRECTO'"><mat-icon>money_off</mat-icon> Gastos Directos</button>
             </div>
 
             <div class="mov-filtros-avanzados">
@@ -939,6 +943,74 @@
       <button class="btn-primary" (click)="registrarIngresoDirecto()" [disabled]="loadingAction">
         <mat-spinner diameter="18" *ngIf="loadingAction"></mat-spinner>
         <span>{{ loadingAction ? 'Guardando...' : 'Registrar Ingreso' }}</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL GASTO DIRECTO -->
+<div class="modal-overlay" *ngIf="modalActivo === 'gastoDirecto'" (click)="cerrarModal()">
+  <div class="modal animate-fadeInUp" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Gasto Directo</h2>
+      <button class="icon-btn" (click)="cerrarModal()"><mat-icon>close</mat-icon></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Descripción</label>
+        <input type="text" [(ngModel)]="gastoDirectoForm.descripcion" placeholder="Ej: Alquiler de local, Decoración..." class="form-input">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Monto *</label>
+          <input type="number" [(ngModel)]="gastoDirectoForm.monto" placeholder="0.00" class="form-input">
+        </div>
+        <div class="form-group">
+          <label>Fecha *</label>
+          <input type="date" [(ngModel)]="gastoDirectoForm.fecha" class="form-input">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>¿De qué fondo sale? *</label>
+        <div class="fondo-selector">
+          <button type="button" class="fondo-chip" [class.selected]="gastoDirectoForm.fondo === 'CARNAVAL'" (click)="gastoDirectoForm.fondo = 'CARNAVAL'">
+            <mat-icon>celebration</mat-icon> Carnaval
+          </button>
+          <button type="button" class="fondo-chip" [class.selected]="gastoDirectoForm.fondo === 'AHORRO'" (click)="gastoDirectoForm.fondo = 'AHORRO'">
+            <mat-icon>savings</mat-icon> Ahorro
+          </button>
+          <button type="button" class="fondo-chip" [class.selected]="gastoDirectoForm.fondo === 'MIXTO'" (click)="gastoDirectoForm.fondo = 'MIXTO'">
+            <mat-icon>call_split</mat-icon> Mixto
+          </button>
+        </div>
+        <div class="fondo-mixto-split" *ngIf="gastoDirectoForm.fondo === 'MIXTO'">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Desde Carnaval</label>
+              <input type="number" [(ngModel)]="gastoDirectoForm.montoCarnavalManual" placeholder="0.00" class="form-input">
+            </div>
+            <div class="form-group">
+              <label>Desde Ahorro</label>
+              <input type="number" [(ngModel)]="gastoDirectoForm.montoAhorroManual" placeholder="0.00" class="form-input">
+            </div>
+          </div>
+          <div class="fondo-mixto-hint" [class.ok]="montoRestanteMixto(gastoDirectoForm.montoCarnavalManual, gastoDirectoForm.montoAhorroManual, gastoDirectoForm.monto) === 0">
+            <mat-icon>{{ montoRestanteMixto(gastoDirectoForm.montoCarnavalManual, gastoDirectoForm.montoAhorroManual, gastoDirectoForm.monto) === 0 ? 'check_circle' : 'info_outline' }}</mat-icon>
+            <span *ngIf="montoRestanteMixto(gastoDirectoForm.montoCarnavalManual, gastoDirectoForm.montoAhorroManual, gastoDirectoForm.monto) !== 0">
+              Falta repartir {{ grupo?.moneda }} {{ montoRestanteMixto(gastoDirectoForm.montoCarnavalManual, gastoDirectoForm.montoAhorroManual, gastoDirectoForm.monto) | number:'1.2-2' }}
+            </span>
+            <span *ngIf="montoRestanteMixto(gastoDirectoForm.montoCarnavalManual, gastoDirectoForm.montoAhorroManual, gastoDirectoForm.monto) === 0">
+              Reparto completo
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="cerrarModal()">Cancelar</button>
+      <button class="btn-primary" (click)="registrarGastoDirecto()" [disabled]="loadingAction">
+        <mat-spinner diameter="18" *ngIf="loadingAction"></mat-spinner>
+        <span>{{ loadingAction ? 'Guardando...' : 'Registrar Gasto' }}</span>
       </button>
     </div>
   </div>

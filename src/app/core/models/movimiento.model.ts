@@ -1,4 +1,4 @@
-export type TipoMovimiento = 'APORTE' | 'GASTO_COMPARTIDO' | 'GASTO_INDIVIDUAL' | 'MULTA' | 'INGRESO_DIRECTO';
+export type TipoMovimiento = 'APORTE' | 'GASTO_COMPARTIDO' | 'GASTO_INDIVIDUAL' | 'MULTA' | 'INGRESO_DIRECTO' | 'GASTO_DIRECTO';
 
 // A qué fondo pertenece un movimiento. Los aportes/ingresos solo usan CARNAVAL o AHORRO
 // (un único fondo); los gastos además admiten MIXTO (repartido entre ambos).
@@ -69,4 +69,13 @@ export interface RegistrarIngresoDirectoRequest {
   monto: number;
   fecha: string;
   fondo: TipoFondo;
+}
+
+export interface RegistrarGastoDirectoRequest {
+  descripcion?: string;
+  monto: number;
+  fecha: string;
+  fondo: TipoFondo;
+  montoCarnaval?: number;
+  montoAhorro?: number;
 }
