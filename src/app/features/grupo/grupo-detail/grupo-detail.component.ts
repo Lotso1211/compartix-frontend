@@ -326,7 +326,14 @@ export class GrupoDetailComponent implements OnInit {
 
   registrarAporte(): void {
     if (!this.esDirectiva) return;
-    if (!this.aporteForm.usuarioId || !this.aporteForm.monto) return;
+    if (!this.aporteForm.usuarioId) {
+      this.snackBar.open('Selecciona un miembro', 'Cerrar', { duration: 3000 });
+      return;
+    }
+    if (!this.aporteForm.monto) {
+      this.snackBar.open('El monto es obligatorio', 'Cerrar', { duration: 3000 });
+      return;
+    }
     this.loadingAction = true;
     this.movimientoService.registrarAporte(this.grupoId, {
       usuarioId: this.aporteForm.usuarioId,
@@ -352,7 +359,14 @@ export class GrupoDetailComponent implements OnInit {
 
   registrarGastoCompartido(): void {
     if (!this.esDirectiva) return;
-    if (!this.gastoCompartidoForm.descripcion || !this.gastoCompartidoForm.montoTotal) return;
+    if (!this.gastoCompartidoForm.descripcion) {
+      this.snackBar.open('La descripción es obligatoria', 'Cerrar', { duration: 3000 });
+      return;
+    }
+    if (!this.gastoCompartidoForm.montoTotal) {
+      this.snackBar.open('El monto total es obligatorio', 'Cerrar', { duration: 3000 });
+      return;
+    }
     if (this.gastoCompartidoForm.usuarioIds.length === 0) {
       this.snackBar.open('Debes seleccionar al menos un miembro', 'Cerrar', { duration: 3000 });
       return;
@@ -390,7 +404,14 @@ export class GrupoDetailComponent implements OnInit {
 
   registrarGastoIndividual(): void {
     if (!this.esDirectiva) return;
-    if (!this.gastoIndividualForm.descripcion || !this.gastoIndividualForm.precioUnitario) return;
+    if (!this.gastoIndividualForm.descripcion) {
+      this.snackBar.open('La descripción es obligatoria', 'Cerrar', { duration: 3000 });
+      return;
+    }
+    if (!this.gastoIndividualForm.precioUnitario) {
+      this.snackBar.open('El precio unitario es obligatorio', 'Cerrar', { duration: 3000 });
+      return;
+    }
     const cantidadesPorUsuario: {[key: number]: number} = {};
     this.miembros.forEach(m => {
       const cant = this.gastoIndividualForm.cantidades[m.id];
@@ -433,7 +454,18 @@ export class GrupoDetailComponent implements OnInit {
 
   registrarMulta(): void {
     if (!this.esDirectiva) return;
-    if (!this.multaForm.usuarioId || !this.multaForm.monto) return;
+    if (!this.multaForm.usuarioId) {
+      this.snackBar.open('Selecciona un miembro', 'Cerrar', { duration: 3000 });
+      return;
+    }
+    if (!this.multaForm.motivo) {
+      this.snackBar.open('El motivo es obligatorio', 'Cerrar', { duration: 3000 });
+      return;
+    }
+    if (!this.multaForm.monto) {
+      this.snackBar.open('El monto es obligatorio', 'Cerrar', { duration: 3000 });
+      return;
+    }
     this.loadingAction = true;
     this.movimientoService.registrarMulta(this.grupoId, {
       usuarioId: this.multaForm.usuarioId,
@@ -461,7 +493,10 @@ export class GrupoDetailComponent implements OnInit {
 
   registrarIngresoDirecto(): void {
     if (!this.esDirectiva) return;
-    if (!this.ingresoDirectoForm.monto) return;
+    if (!this.ingresoDirectoForm.monto) {
+      this.snackBar.open('El monto es obligatorio', 'Cerrar', { duration: 3000 });
+      return;
+    }
     this.loadingAction = true;
     this.movimientoService.registrarIngresoDirecto(this.grupoId, {
       descripcion: this.ingresoDirectoForm.descripcion,
@@ -485,7 +520,10 @@ export class GrupoDetailComponent implements OnInit {
 
   registrarGastoDirecto(): void {
     if (!this.esDirectiva) return;
-    if (!this.gastoDirectoForm.monto) return;
+    if (!this.gastoDirectoForm.monto) {
+      this.snackBar.open('El monto es obligatorio', 'Cerrar', { duration: 3000 });
+      return;
+    }
     if (this.gastoDirectoForm.fondo === 'MIXTO' && this.montoRestanteMixto(this.gastoDirectoForm.montoCarnavalManual, this.gastoDirectoForm.montoAhorroManual, this.gastoDirectoForm.monto) !== 0) {
       this.snackBar.open('El reparto entre Carnaval y Ahorro debe sumar el monto total', 'Cerrar', { duration: 3000 });
       return;
