@@ -215,6 +215,7 @@
               <div class="mov-fecha-col">
                 <span class="mov-dia">{{ mov.fecha | date:'dd' }}</span>
                 <span class="mov-mes-anio text-muted">{{ mov.fecha | date:'MMM yyyy' }}</span>
+                <span class="mov-hora text-muted" *ngIf="mov.creadoEn">{{ mov.creadoEn | date:'HH:mm' }}</span>
               </div>
               <div class="mov-info">
                 <div class="mov-tipo-row">
