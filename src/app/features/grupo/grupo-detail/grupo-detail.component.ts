@@ -79,6 +79,28 @@ export class GrupoDetailComponent implements OnInit {
   ];
   showConfirmEliminar = false;
 
+  // Filtros: Kardex
+  filtroKardexBuscar: string = '';
+  ordenKardex: string = 'nombre_asc';
+  filtroKardexSoloDeudores: boolean = false;
+
+  // Filtros: Miembros
+  filtroMiembroBuscar: string = '';
+  filtroMiembroRol: string = 'TODOS';
+  filtroMiembroEstado: string = 'TODOS';
+
+  // Filtros: Multas
+  filtroMultaFechaDesde: string = '';
+  filtroMultaFechaHasta: string = '';
+  filtroMultaEstado: string = 'TODOS';
+  filtroMultaMiembro: string = 'TODOS';
+
+  // Filtros: Pedidos
+  filtroPedidoBuscar: string = '';
+  filtroPedidoEstado: string = 'TODOS';
+  filtroPedidoFechaDesde: string = '';
+  filtroPedidoFechaHasta: string = '';
+
   // Pedidos
   pedidos: PedidoResponse[] = [];
   pedidoSeleccionado: PedidoResponse | null = null;
@@ -598,6 +620,116 @@ export class GrupoDetailComponent implements OnInit {
     this.filtroFechaDesde = '';
     this.filtroFechaHasta = '';
     this.filtroDiaSemana = 'TODOS';
+  }
+
+  // ============================================================
+  // FILTROS: KARDEX
+  // ============================================================
+  getKardexFiltrado(): Kardex[] {
+    const nombreCompleto = (k: Kardex) => `${k.usuario.nombre} ${k.usuario.apellido}`;
+    const filtrado = this.kardexList.filter(k => {
+      if (this.filtroKardexSoloDeudores && k.saldoActual >= 0) return false;
+      if (this.filtroKardexBuscar && !nombreCompleto(k).toLowerCase().includes(this.filtroKardexBuscar.toLowerCase())) return false;
+      return true;
+    });
+    return [...filtrado].sort((a, b) => {
+      switch (this.ordenKardex) {
+        case 'nombre_desc': return nombreCompleto(b).localeCompare(nombreCompleto(a));
+        case 'saldo_desc': return b.saldoActual - a.saldoActual;
+        case 'saldo_asc': return a.saldoActual - b.saldoActual;
+        default: return nombreCompleto(a).localeCompare(nombreCompleto(b));
+      }
+    });
+  }
+
+  get hayFiltrosKardexActivos(): boolean {
+    return !!this.filtroKardexBuscar || this.filtroKardexSoloDeudores || this.ordenKardex !== 'nombre_asc';
+  }
+
+  limpiarFiltrosKardex(): void {
+    this.filtroKardexBuscar = '';
+    this.filtroKardexSoloDeudores = false;
+    this.ordenKardex = 'nombre_asc';
+  }
+
+  // ============================================================
+  // FILTROS: MIEMBROS
+  // ============================================================
+  getMiembrosFiltrados(): MiembroGrupo[] {
+    const base = this.esDirectiva ? this.miembrosGestion : this.miembros;
+    return base.filter(m => {
+      if (this.filtroMiembroRol !== 'TODOS' && m.rol !== this.filtroMiembroRol) return false;
+      if (this.filtroMiembroEstado === 'ACTIVOS' && m.activo === false) return false;
+      if (this.filtroMiembroEstado === 'INACTIVOS' && m.activo !== false) return false;
+      if (this.filtroMiembroBuscar && !`${m.nombre} ${m.apellido}`.toLowerCase().includes(this.filtroMiembroBuscar.toLowerCase())) return false;
+      return true;
+    });
+  }
+
+  get hayFiltrosMiembroActivos(): boolean {
+    return !!this.filtroMiembroBuscar || this.filtroMiembroRol !== 'TODOS' || this.filtroMiembroEstado !== 'TODOS';
+  }
+
+  limpiarFiltrosMiembro(): void {
+    this.filtroMiembroBuscar = '';
+    this.filtroMiembroRol = 'TODOS';
+    this.filtroMiembroEstado = 'TODOS';
+  }
+
+  // ============================================================
+  // FILTROS: MULTAS
+  // ============================================================
+  getMultasFiltradas(): MultaResponse[] {
+    return this.multas.filter(m => {
+      if (this.filtroMultaEstado !== 'TODOS' && m.estado !== this.filtroMultaEstado) return false;
+      if (this.filtroMultaMiembro !== 'TODOS' && m.nombreUsuario !== this.filtroMultaMiembro) return false;
+      if (this.filtroMultaFechaDesde && m.fecha < this.filtroMultaFechaDesde) return false;
+      if (this.filtroMultaFechaHasta && m.fecha > this.filtroMultaFechaHasta) return false;
+      return true;
+    });
+  }
+
+  get miembrosConMultaDisponibles(): string[] {
+    const set = new Set<string>();
+    this.multas.forEach(m => { if (m.nombreUsuario) set.add(m.nombreUsuario); });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }
+
+  get hayFiltrosMultaActivos(): boolean {
+    return this.filtroMultaEstado !== 'TODOS' || this.filtroMultaMiembro !== 'TODOS' ||
+      !!this.filtroMultaFechaDesde || !!this.filtroMultaFechaHasta;
+  }
+
+  limpiarFiltrosMulta(): void {
+    this.filtroMultaEstado = 'TODOS';
+    this.filtroMultaMiembro = 'TODOS';
+    this.filtroMultaFechaDesde = '';
+    this.filtroMultaFechaHasta = '';
+  }
+
+  // ============================================================
+  // FILTROS: PEDIDOS
+  // ============================================================
+  getPedidosFiltrados(): PedidoResponse[] {
+    return this.pedidos.filter(p => {
+      if (this.filtroPedidoEstado !== 'TODOS' && p.estado !== this.filtroPedidoEstado) return false;
+      if (this.filtroPedidoBuscar && !p.nombre.toLowerCase().includes(this.filtroPedidoBuscar.toLowerCase())) return false;
+      if (this.filtroPedidoFechaDesde && p.fecha < this.filtroPedidoFechaDesde) return false;
+      if (this.filtroPedidoFechaHasta && p.fecha > this.filtroPedidoFechaHasta) return false;
+      return true;
+    });
+  }
+
+  get hayFiltrosPedidoActivos(): boolean {
+    return !!this.filtroPedidoBuscar || this.filtroPedidoEstado !== 'TODOS' ||
+      !!this.filtroPedidoFechaDesde || !!this.filtroPedidoFechaHasta;
+  }
+
+  limpiarFiltrosPedido(): void {
+    this.filtroPedidoBuscar = '';
+    this.filtroPedidoEstado = 'TODOS';
+    this.filtroPedidoFechaDesde = '';
+    this.filtroPedidoFechaHasta = '';
   }
 
   getTotalGastoIndividual(): number {

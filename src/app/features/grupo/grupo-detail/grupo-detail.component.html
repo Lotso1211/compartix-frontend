@@ -303,11 +303,37 @@
           </div>
 
           <div *ngIf="esDirectiva" class="kardex-tabla">
+            <div class="mov-filtros" *ngIf="kardexList.length > 0">
+              <button class="filtro-btn" [class.activo]="!filtroKardexSoloDeudores" (click)="filtroKardexSoloDeudores = false">Todos</button>
+              <button class="filtro-btn" [class.activo]="filtroKardexSoloDeudores" (click)="filtroKardexSoloDeudores = true"><mat-icon>trending_down</mat-icon> Solo deudores</button>
+            </div>
+            <div class="mov-filtros-avanzados" *ngIf="kardexList.length > 0">
+              <div class="filtro-campo" style="min-width: 200px;">
+                <label>Buscar</label>
+                <input type="text" class="filtro-input" placeholder="Nombre o apellido..." [(ngModel)]="filtroKardexBuscar">
+              </div>
+              <div class="filtro-campo">
+                <label>Ordenar por</label>
+                <select class="filtro-select" [(ngModel)]="ordenKardex">
+                  <option value="nombre_asc">Nombre (A-Z)</option>
+                  <option value="nombre_desc">Nombre (Z-A)</option>
+                  <option value="saldo_desc">Saldo (mayor a menor)</option>
+                  <option value="saldo_asc">Saldo (menor a mayor)</option>
+                </select>
+              </div>
+              <button class="filtro-btn filtro-limpiar" *ngIf="hayFiltrosKardexActivos" (click)="limpiarFiltrosKardex()">
+                <mat-icon>close</mat-icon> Limpiar
+              </button>
+            </div>
             <div class="empty-state" *ngIf="kardexList.length === 0">
               <mat-icon class="empty-icon">account_balance_wallet</mat-icon>
               <p>No hay datos de kardex aún</p>
             </div>
-            <div class="kardex-row" *ngFor="let k of kardexList"
+            <div class="empty-state empty-state-filtros" *ngIf="kardexList.length > 0 && getKardexFiltrado().length === 0">
+              <mat-icon class="empty-icon">search_off</mat-icon>
+              <p>Ningún miembro coincide con estos filtros</p>
+            </div>
+            <div class="kardex-row" *ngFor="let k of getKardexFiltrado()"
                  (click)="verKardexMiembro({id: k.usuario.id, nombre: k.usuario.nombre, apellido: k.usuario.apellido, email: k.usuario.email, rol: ''})">
               <div class="kardex-miembro">
                 <div class="mini-avatar">{{ getInitiales(k.usuario.nombre, k.usuario.apellido) }}</div>
@@ -331,8 +357,38 @@
       <mat-tab>
       <ng-template mat-tab-label><mat-icon>groups</mat-icon> Miembros</ng-template>
         <div class="tab-content">
+          <div class="mov-filtros" *ngIf="(esDirectiva ? miembrosGestion : miembros).length > 0">
+            <button class="filtro-btn" [class.activo]="filtroMiembroRol === 'TODOS'" (click)="filtroMiembroRol = 'TODOS'">Todos</button>
+            <button class="filtro-btn" [class.activo]="filtroMiembroRol === 'DIRECTIVA'" (click)="filtroMiembroRol = 'DIRECTIVA'"><mat-icon>shield</mat-icon> Directiva</button>
+            <button class="filtro-btn" [class.activo]="filtroMiembroRol === 'MIEMBRO'" (click)="filtroMiembroRol = 'MIEMBRO'"><mat-icon>person</mat-icon> Miembros</button>
+          </div>
+          <div class="mov-filtros-avanzados" *ngIf="(esDirectiva ? miembrosGestion : miembros).length > 0">
+            <div class="filtro-campo" style="min-width: 200px;">
+              <label>Buscar</label>
+              <input type="text" class="filtro-input" placeholder="Nombre o apellido..." [(ngModel)]="filtroMiembroBuscar">
+            </div>
+            <div class="filtro-campo" *ngIf="esDirectiva">
+              <label>Estado</label>
+              <select class="filtro-select" [(ngModel)]="filtroMiembroEstado">
+                <option value="TODOS">Todos</option>
+                <option value="ACTIVOS">Activos</option>
+                <option value="INACTIVOS">Inactivos</option>
+              </select>
+            </div>
+            <button class="filtro-btn filtro-limpiar" *ngIf="hayFiltrosMiembroActivos" (click)="limpiarFiltrosMiembro()">
+              <mat-icon>close</mat-icon> Limpiar
+            </button>
+          </div>
+          <div class="empty-state" *ngIf="(esDirectiva ? miembrosGestion : miembros).length === 0">
+            <mat-icon class="empty-icon">groups</mat-icon>
+            <p>No hay miembros aún</p>
+          </div>
+          <div class="empty-state empty-state-filtros" *ngIf="(esDirectiva ? miembrosGestion : miembros).length > 0 && getMiembrosFiltrados().length === 0">
+            <mat-icon class="empty-icon">search_off</mat-icon>
+            <p>Ningún miembro coincide con estos filtros</p>
+          </div>
           <div class="miembros-grid">
-            <div class="miembro-card" *ngFor="let m of (esDirectiva ? miembrosGestion : miembros)"
+            <div class="miembro-card" *ngFor="let m of getMiembrosFiltrados()"
                  [class.inactivo]="m.activo === false">
               <div class="miembro-avatar">{{ getInitiales(m.nombre, m.apellido) }}</div>
               <div class="miembro-info">
@@ -382,12 +438,41 @@
       <mat-tab>
       <ng-template mat-tab-label><mat-icon>gavel</mat-icon> Multas</ng-template>
         <div class="tab-content">
+          <div class="mov-filtros" *ngIf="multas.length > 0">
+            <button class="filtro-btn" [class.activo]="filtroMultaEstado === 'TODOS'" (click)="filtroMultaEstado = 'TODOS'">Todos</button>
+            <button class="filtro-btn" [class.activo]="filtroMultaEstado === 'PENDIENTE'" (click)="filtroMultaEstado = 'PENDIENTE'"><mat-icon>gavel</mat-icon> Pendientes</button>
+            <button class="filtro-btn" [class.activo]="filtroMultaEstado === 'PAGADA'" (click)="filtroMultaEstado = 'PAGADA'"><mat-icon>check_circle</mat-icon> Pagadas</button>
+          </div>
+          <div class="mov-filtros-avanzados" *ngIf="multas.length > 0">
+            <div class="filtro-campo">
+              <label>Desde</label>
+              <input type="date" class="filtro-input" [(ngModel)]="filtroMultaFechaDesde" [max]="filtroMultaFechaHasta || null">
+            </div>
+            <div class="filtro-campo">
+              <label>Hasta</label>
+              <input type="date" class="filtro-input" [(ngModel)]="filtroMultaFechaHasta" [min]="filtroMultaFechaDesde || null">
+            </div>
+            <div class="filtro-campo" *ngIf="esDirectiva && miembrosConMultaDisponibles.length > 1">
+              <label>Miembro</label>
+              <select class="filtro-select" [(ngModel)]="filtroMultaMiembro">
+                <option value="TODOS">Todos</option>
+                <option *ngFor="let n of miembrosConMultaDisponibles" [value]="n">{{ n }}</option>
+              </select>
+            </div>
+            <button class="filtro-btn filtro-limpiar" *ngIf="hayFiltrosMultaActivos" (click)="limpiarFiltrosMulta()">
+              <mat-icon>close</mat-icon> Limpiar
+            </button>
+          </div>
           <div class="empty-state" *ngIf="multas.length === 0">
             <mat-icon class="empty-icon">check_circle</mat-icon>
             <p>No hay multas registradas</p>
           </div>
+          <div class="empty-state empty-state-filtros" *ngIf="multas.length > 0 && getMultasFiltradas().length === 0">
+            <mat-icon class="empty-icon">search_off</mat-icon>
+            <p>Ninguna multa coincide con estos filtros</p>
+          </div>
           <div class="multas-lista" *ngIf="multas.length > 0">
-            <div class="multa-item" *ngFor="let m of multas" [class.pagada]="m.estado === 'PAGADA'" [class.pendiente]="m.estado === 'PENDIENTE'">
+            <div class="multa-item" *ngFor="let m of getMultasFiltradas()" [class.pagada]="m.estado === 'PAGADA'" [class.pendiente]="m.estado === 'PENDIENTE'">
               <mat-icon class="multa-icon">{{ m.estado === 'PAGADA' ? 'check_circle' : 'gavel' }}</mat-icon>
               <div class="multa-info">
                 <span class="multa-usuario">{{ m.nombreUsuario }}</span>
@@ -420,12 +505,38 @@
       <mat-tab>
       <ng-template mat-tab-label><mat-icon>inventory_2</mat-icon> Pedidos</ng-template>
         <div class="tab-content">
+          <div class="mov-filtros" *ngIf="pedidos.length > 0">
+            <button class="filtro-btn" [class.activo]="filtroPedidoEstado === 'TODOS'" (click)="filtroPedidoEstado = 'TODOS'">Todos</button>
+            <button class="filtro-btn" [class.activo]="filtroPedidoEstado === 'ABIERTO'" (click)="filtroPedidoEstado = 'ABIERTO'"><mat-icon>lock_open</mat-icon> Abiertos</button>
+            <button class="filtro-btn" [class.activo]="filtroPedidoEstado === 'CERRADO'" (click)="filtroPedidoEstado = 'CERRADO'"><mat-icon>lock</mat-icon> Cerrados</button>
+          </div>
+          <div class="mov-filtros-avanzados" *ngIf="pedidos.length > 0">
+            <div class="filtro-campo" style="min-width: 200px;">
+              <label>Buscar</label>
+              <input type="text" class="filtro-input" placeholder="Nombre del pedido..." [(ngModel)]="filtroPedidoBuscar">
+            </div>
+            <div class="filtro-campo">
+              <label>Desde</label>
+              <input type="date" class="filtro-input" [(ngModel)]="filtroPedidoFechaDesde" [max]="filtroPedidoFechaHasta || null">
+            </div>
+            <div class="filtro-campo">
+              <label>Hasta</label>
+              <input type="date" class="filtro-input" [(ngModel)]="filtroPedidoFechaHasta" [min]="filtroPedidoFechaDesde || null">
+            </div>
+            <button class="filtro-btn filtro-limpiar" *ngIf="hayFiltrosPedidoActivos" (click)="limpiarFiltrosPedido()">
+              <mat-icon>close</mat-icon> Limpiar
+            </button>
+          </div>
           <div class="empty-state" *ngIf="pedidos.length === 0">
             <mat-icon class="empty-icon">inventory_2</mat-icon>
             <p>No hay pedidos registrados</p>
           </div>
+          <div class="empty-state empty-state-filtros" *ngIf="pedidos.length > 0 && getPedidosFiltrados().length === 0">
+            <mat-icon class="empty-icon">search_off</mat-icon>
+            <p>Ningún pedido coincide con estos filtros</p>
+          </div>
           <div class="pedidos-lista" *ngIf="pedidos.length > 0">
-            <div class="pedido-card" *ngFor="let p of pedidos">
+            <div class="pedido-card" *ngFor="let p of getPedidosFiltrados()">
               <div class="pedido-header">
                 <div class="pedido-info">
                   <span class="pedido-nombre">{{ p.nombre }}</span>
