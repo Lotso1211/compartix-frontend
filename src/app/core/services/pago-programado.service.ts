@@ -34,6 +34,7 @@ export interface CuotaResponse {
   fechaPago?: string;
   multaAplicada: boolean;
   montoMulta: number;
+  motivoAnulacion?: string;
 }
 
 export interface ReactivacionInfo {
@@ -75,6 +76,21 @@ export class PagoProgramadoService {
 
   marcarCuotaPagada(grupoId: number, cuotaId: number): Observable<CuotaResponse> {
     return this.http.patch<CuotaResponse>(`${this.apiUrl}/${grupoId}/pagos-programados/cuotas/${cuotaId}/pagar`, null);
+  }
+
+  anularCuota(grupoId: number, cuotaId: number, motivo: string): Observable<CuotaResponse> {
+    return this.http.patch<CuotaResponse>(
+      `${this.apiUrl}/${grupoId}/pagos-programados/cuotas/${cuotaId}/anular`, { motivo });
+  }
+
+  revertirAnulacionCuota(grupoId: number, cuotaId: number): Observable<CuotaResponse> {
+    return this.http.patch<CuotaResponse>(
+      `${this.apiUrl}/${grupoId}/pagos-programados/cuotas/${cuotaId}/revertir-anulacion`, null);
+  }
+
+  obtenerHistorialCuotas(grupoId: number, pagoProgramadoId: number): Observable<CuotaResponse[]> {
+    return this.http.get<CuotaResponse[]>(
+      `${this.apiUrl}/${grupoId}/pagos-programados/${pagoProgramadoId}/cuotas`);
   }
 
   verificarMultas(grupoId: number): Observable<void> {

@@ -113,6 +113,18 @@ export class GrupoDetailComponent implements OnInit {
   misCuotas: CuotaResponse[] = [];
   mesSeleccionado = new Date().getMonth() + 1;
   anioSeleccionado = new Date().getFullYear();
+  filtroPagoProgramadoEstado: string = 'TODOS';
+
+  // Historial de un pago programado
+  showHistorialPago = false;
+  pagoHistorialSeleccionado: PagoProgramadoResponse | null = null;
+  historialCuotas: CuotaResponse[] = [];
+  loadingHistorial = false;
+
+  // Anular mensualidad
+  showAnularCuota = false;
+  cuotaAAnular: CuotaResponse | null = null;
+  motivoAnulacionCuota: string = '';
 
   // Modal
   modalActivo: string = '';
@@ -1111,22 +1123,102 @@ export class GrupoDetailComponent implements OnInit {
     const ok = confirm(
       `¿Finalizar "${pp.nombre}"?\n\n` +
       `• Ya no se generarán más cuotas.\n` +
-      `• Las cuotas pendientes o vencidas se eliminarán.\n` +
-      `• Solo quedará visible el historial de cuotas pagadas.`
+      `• Las cuotas pendientes o vencidas dejan de ser exigibles (no cuentan como deuda ni generan multa).\n` +
+      `• Podrás seguir viendo el historial completo desde "Ver historial".`
     );
     if (!ok) return;
     this.pagoProgramadoService.finalizarPagoProgramado(this.grupoId, pp.id).subscribe({
-    next: () => {
-      pp.activo = false;
-      // El backend elimina las cuotas no pagadas del pago finalizado → recargar la lista
-      this.cargarCuotasMes();
-      this.snackBar.open('✅ Pago programado finalizado. Solo quedan visibles las cuotas pagadas.', 'Cerrar', { duration: 4000 });
-    },
-    error: (err) => {
-      this.snackBar.open(err.error?.message || 'Error al finalizar', 'Cerrar', { duration: 3000 });
-    }
-  });
-}
+      next: () => {
+        pp.activo = false;
+        this.cargarCuotasMes();
+        this.snackBar.open('✅ Pago programado finalizado', 'Cerrar', { duration: 3000 });
+      },
+      error: (err) => {
+        this.snackBar.open(err.error?.message || 'Error al finalizar', 'Cerrar', { duration: 3000 });
+      }
+    });
+  }
+
+  // ============================================================
+  // PAGOS PROGRAMADOS: FILTRO POR ESTADO
+  // ============================================================
+  getPagosProgramadosFiltrados(): PagoProgramadoResponse[] {
+    if (this.filtroPagoProgramadoEstado === 'ACTIVOS') return this.pagosProgramados.filter(p => p.activo);
+    if (this.filtroPagoProgramadoEstado === 'FINALIZADOS') return this.pagosProgramados.filter(p => !p.activo);
+    return this.pagosProgramados;
+  }
+
+  // ============================================================
+  // HISTORIAL COMPLETO DE UN PAGO PROGRAMADO
+  // ============================================================
+  verHistorialPago(pp: PagoProgramadoResponse): void {
+    this.pagoHistorialSeleccionado = pp;
+    this.showHistorialPago = true;
+    this.loadingHistorial = true;
+    this.pagoProgramadoService.obtenerHistorialCuotas(this.grupoId, pp.id).subscribe({
+      next: (cuotas) => {
+        this.historialCuotas = cuotas;
+        this.loadingHistorial = false;
+      },
+      error: (err) => {
+        this.loadingHistorial = false;
+        this.snackBar.open(err.error?.message || 'Error al cargar el historial', 'Cerrar', { duration: 3000 });
+      }
+    });
+  }
+
+  cerrarHistorialPago(): void {
+    this.showHistorialPago = false;
+    this.pagoHistorialSeleccionado = null;
+    this.historialCuotas = [];
+  }
+
+  // ============================================================
+  // ANULAR / REVERTIR MENSUALIDAD
+  // ============================================================
+  abrirAnularCuota(c: CuotaResponse): void {
+    if (!this.esDirectiva) return;
+    this.cuotaAAnular = c;
+    this.motivoAnulacionCuota = '';
+    this.showAnularCuota = true;
+  }
+
+  cerrarAnularCuota(): void {
+    this.showAnularCuota = false;
+    this.cuotaAAnular = null;
+    this.motivoAnulacionCuota = '';
+  }
+
+  confirmarAnularCuota(): void {
+    if (!this.cuotaAAnular) return;
+    this.loadingAction = true;
+    this.pagoProgramadoService.anularCuota(this.grupoId, this.cuotaAAnular.id, this.motivoAnulacionCuota).subscribe({
+      next: (c) => {
+        Object.assign(this.cuotaAAnular!, c);
+        this.loadingAction = false;
+        this.cerrarAnularCuota();
+        this.snackBar.open('✅ Mensualidad anulada', 'Cerrar', { duration: 3000 });
+      },
+      error: (err) => {
+        this.loadingAction = false;
+        this.snackBar.open(err.error?.message || 'Error al anular', 'Cerrar', { duration: 3000 });
+      }
+    });
+  }
+
+  revertirAnulacion(c: CuotaResponse): void {
+    if (!this.esDirectiva) return;
+    if (!confirm(`¿Revertir la anulación de la cuota de ${this.getNombreMes(c.mes)} ${c.anio} de ${c.nombreUsuario}? Volverá a quedar pendiente.`)) return;
+    this.pagoProgramadoService.revertirAnulacionCuota(this.grupoId, c.id).subscribe({
+      next: (actualizada) => {
+        Object.assign(c, actualizada);
+        this.snackBar.open('✅ Anulación revertida', 'Cerrar', { duration: 3000 });
+      },
+      error: (err) => {
+        this.snackBar.open(err.error?.message || 'Error al revertir', 'Cerrar', { duration: 3000 });
+      }
+    });
+  }
 
   // ── Añadir un miembro que se sumó tarde a un pago programado en curso ──
   abrirAgregarMiembroPago(pp: PagoProgramadoResponse): void {

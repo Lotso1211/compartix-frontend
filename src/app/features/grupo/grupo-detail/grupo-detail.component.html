@@ -572,8 +572,14 @@
               <button class="btn-sm btn-primary-sm" (click)="abrirModal('pagoProgramado')"><mat-icon>add</mat-icon> Nuevo</button>
             </div>
 
+            <div class="mov-filtros" *ngIf="pagosProgramados.length > 0">
+              <button class="filtro-btn" [class.activo]="filtroPagoProgramadoEstado === 'TODOS'" (click)="filtroPagoProgramadoEstado = 'TODOS'">Todos</button>
+              <button class="filtro-btn" [class.activo]="filtroPagoProgramadoEstado === 'ACTIVOS'" (click)="filtroPagoProgramadoEstado = 'ACTIVOS'"><mat-icon>play_circle</mat-icon> Activos</button>
+              <button class="filtro-btn" [class.activo]="filtroPagoProgramadoEstado === 'FINALIZADOS'" (click)="filtroPagoProgramadoEstado = 'FINALIZADOS'"><mat-icon>stop_circle</mat-icon> Finalizados</button>
+            </div>
+
             <div class="pp-lista" *ngIf="pagosProgramados.length > 0">
-              <div class="pp-card" *ngFor="let pp of pagosProgramados">
+              <div class="pp-card" *ngFor="let pp of getPagosProgramadosFiltrados()">
                 <div class="pp-info">
                   <span class="pp-nombre">{{ pp.nombre }}</span>
                   <span class="pp-monto">{{ grupo?.moneda }} {{ pp.montoMensual | number:'1.2-2' }}/mes</span>
@@ -587,6 +593,9 @@
                 <div class="pp-card-actions">
                   <span class="badge badge-success" *ngIf="pp.activo">Activo</span>
                   <span class="badge badge-danger" *ngIf="!pp.activo">Finalizado</span>
+                  <button class="btn-sm btn-secondary-sm" (click)="verHistorialPago(pp)">
+                    <mat-icon>history</mat-icon> Ver historial
+                  </button>
                   <button class="btn-sm btn-secondary-sm" *ngIf="pp.activo" (click)="abrirAgregarMiembroPago(pp)">
                     <mat-icon>person_add</mat-icon> Añadir miembro
                   </button>
@@ -595,6 +604,11 @@
                   </button>
                 </div>
               </div>
+            </div>
+
+            <div class="empty-state empty-state-filtros" *ngIf="pagosProgramados.length > 0 && getPagosProgramadosFiltrados().length === 0">
+              <mat-icon class="empty-icon">search_off</mat-icon>
+              <p>Ningún pago programado coincide con este filtro</p>
             </div>
 
             <div class="empty-state" *ngIf="pagosProgramados.length === 0">
@@ -613,12 +627,16 @@
               <div class="cuota-item" *ngFor="let c of cuotasMes"
                    [class.pagada]="c.estado === 'PAGADA'"
                    [class.pendiente]="c.estado === 'PENDIENTE'"
-                   [class.vencida]="c.estado === 'VENCIDA'">
+                   [class.vencida]="c.estado === 'VENCIDA'"
+                   [class.anulada]="c.estado === 'ANULADA'">
                 <div class="cuota-info">
                   <span class="cuota-usuario">{{ c.nombreUsuario }}</span>
                   <span class="cuota-pago text-muted">{{ c.nombrePago }}</span>
                   <span class="cuota-multa" *ngIf="c.multaAplicada">
                     <mat-icon>gavel</mat-icon> Multa: {{ grupo?.moneda }} {{ c.montoMulta | number:'1.2-2' }}
+                  </span>
+                  <span class="cuota-multa" *ngIf="c.estado === 'ANULADA' && c.motivoAnulacion">
+                    <mat-icon>info_outline</mat-icon> Motivo: {{ c.motivoAnulacion }}
                   </span>
                 </div>
                 <div class="cuota-right">
@@ -635,8 +653,15 @@
                   <span class="badge badge-danger" *ngIf="c.estado === 'PENDIENTE'">Pendiente</span>
                   <span class="badge badge-warning" *ngIf="c.estado === 'VENCIDA'">Vencida</span>
                   <span class="badge badge-muted" *ngIf="c.estado === 'CONGELADA'" matTooltip="Miembro inactivo: la cuota no genera deuda ni multa">Congelada</span>
+                  <span class="badge badge-muted" *ngIf="c.estado === 'ANULADA'" [matTooltip]="c.motivoAnulacion || 'Sin motivo registrado'">Anulada</span>
                   <button class="btn-pagar" *ngIf="c.estado === 'PENDIENTE' || c.estado === 'VENCIDA'" (click)="pagarCuota(c)">
                     <mat-icon>check_circle_outline</mat-icon> Marcar pagada
+                  </button>
+                  <button class="btn-sm btn-secondary-sm" *ngIf="c.estado === 'PENDIENTE' || c.estado === 'VENCIDA'" (click)="abrirAnularCuota(c)">
+                    <mat-icon>block</mat-icon> Anular
+                  </button>
+                  <button class="btn-sm btn-secondary-sm" *ngIf="c.estado === 'ANULADA'" (click)="revertirAnulacion(c)">
+                    <mat-icon>undo</mat-icon> Revertir
                   </button>
                 </div>
               </div>
@@ -655,12 +680,16 @@
               <div class="cuota-item" *ngFor="let c of misCuotas"
                    [class.pagada]="c.estado === 'PAGADA'"
                    [class.pendiente]="c.estado === 'PENDIENTE'"
-                   [class.vencida]="c.estado === 'VENCIDA'">
+                   [class.vencida]="c.estado === 'VENCIDA'"
+                   [class.anulada]="c.estado === 'ANULADA'">
                 <div class="cuota-info">
                   <span class="cuota-pago">{{ c.nombrePago }}</span>
                   <span class="text-muted">{{ getNombreMes(c.mes) }} {{ c.anio }}</span>
                   <span class="cuota-multa" *ngIf="c.multaAplicada">
                     <mat-icon>gavel</mat-icon> Multa aplicada: {{ grupo?.moneda }} {{ c.montoMulta | number:'1.2-2' }}
+                  </span>
+                  <span class="cuota-multa" *ngIf="c.estado === 'ANULADA' && c.motivoAnulacion">
+                    <mat-icon>info_outline</mat-icon> Motivo: {{ c.motivoAnulacion }}
                   </span>
                 </div>
                 <div class="cuota-right">
@@ -676,6 +705,8 @@
                   <span class="badge badge-success" *ngIf="c.estado === 'PAGADA'">✓ Pagada</span>
                   <span class="badge badge-danger" *ngIf="c.estado === 'PENDIENTE'">Pendiente</span>
                   <span class="badge badge-warning" *ngIf="c.estado === 'VENCIDA'">Vencida</span>
+                  <span class="badge badge-muted" *ngIf="c.estado === 'CONGELADA'">Congelada</span>
+                  <span class="badge badge-muted" *ngIf="c.estado === 'ANULADA'">Anulada</span>
                 </div>
               </div>
             </div>
@@ -1367,6 +1398,83 @@
         <mat-spinner diameter="18" *ngIf="loadingAction"></mat-spinner>
         <span>{{ loadingAction ? 'Guardando...' : 'Crear Pago Programado' }}</span>
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ANULAR CUOTA -->
+<div class="modal-overlay" *ngIf="showAnularCuota" (click)="cerrarAnularCuota()">
+  <div class="modal animate-fadeInUp" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Anular mensualidad</h2>
+      <button class="icon-btn" (click)="cerrarAnularCuota()"><mat-icon>close</mat-icon></button>
+    </div>
+    <div class="modal-body" *ngIf="cuotaAAnular as c">
+      <p class="text-muted" style="margin-bottom: 14px;">
+        Vas a anular la cuota de <strong>{{ getNombreMes(c.mes) }} {{ c.anio }}</strong> de
+        <strong>{{ c.nombreUsuario }}</strong> ({{ c.nombrePago }}, {{ grupo?.moneda }} {{ c.monto | number:'1.2-2' }}).
+        Dejará de contar como deuda y no se le aplicará multa por mora. Puedes revertirlo después si te equivocas.
+      </p>
+      <div class="form-group">
+        <label>Motivo (opcional)</label>
+        <input type="text" [(ngModel)]="motivoAnulacionCuota" placeholder="Ej: Viaje, permiso especial..." class="form-input">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="cerrarAnularCuota()">Cancelar</button>
+      <button class="btn-primary" (click)="confirmarAnularCuota()" [disabled]="loadingAction">
+        <mat-spinner diameter="18" *ngIf="loadingAction"></mat-spinner>
+        <span>{{ loadingAction ? 'Guardando...' : 'Anular mensualidad' }}</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL HISTORIAL DE PAGO PROGRAMADO -->
+<div class="modal-overlay" *ngIf="showHistorialPago" (click)="cerrarHistorialPago()">
+  <div class="modal animate-fadeInUp modal-lg" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Historial: {{ pagoHistorialSeleccionado?.nombre }}</h2>
+      <button class="icon-btn" (click)="cerrarHistorialPago()"><mat-icon>close</mat-icon></button>
+    </div>
+    <div class="modal-body">
+      <div class="loading-container" *ngIf="loadingHistorial">
+        <mat-spinner diameter="32"></mat-spinner>
+      </div>
+      <div class="empty-state" *ngIf="!loadingHistorial && historialCuotas.length === 0">
+        <mat-icon class="empty-icon">event</mat-icon>
+        <p>Este pago programado no tiene cuotas registradas</p>
+      </div>
+      <div class="cuotas-lista" *ngIf="!loadingHistorial && historialCuotas.length > 0">
+        <div class="cuota-item" *ngFor="let c of historialCuotas"
+             [class.pagada]="c.estado === 'PAGADA'"
+             [class.pendiente]="c.estado === 'PENDIENTE'"
+             [class.vencida]="c.estado === 'VENCIDA'"
+             [class.anulada]="c.estado === 'ANULADA'">
+          <div class="cuota-info">
+            <span class="cuota-usuario">{{ c.nombreUsuario }}</span>
+            <span class="cuota-pago text-muted">{{ getNombreMes(c.mes) }} {{ c.anio }}</span>
+            <span class="cuota-multa" *ngIf="c.multaAplicada">
+              <mat-icon>gavel</mat-icon> Multa: {{ grupo?.moneda }} {{ c.montoMulta | number:'1.2-2' }}
+            </span>
+            <span class="cuota-multa" *ngIf="c.estado === 'ANULADA' && c.motivoAnulacion">
+              <mat-icon>info_outline</mat-icon> Motivo: {{ c.motivoAnulacion }}
+            </span>
+            <span class="text-muted" *ngIf="c.estado === 'PAGADA' && c.fechaPago">Pagada el {{ c.fechaPago | date:'dd/MM/yyyy' }}</span>
+          </div>
+          <div class="cuota-right">
+            <span class="cuota-monto">{{ grupo?.moneda }} {{ c.monto | number:'1.2-2' }}</span>
+            <span class="badge badge-success" *ngIf="c.estado === 'PAGADA'">✓ Pagada</span>
+            <span class="badge badge-danger" *ngIf="c.estado === 'PENDIENTE'">Pendiente</span>
+            <span class="badge badge-warning" *ngIf="c.estado === 'VENCIDA'">Vencida</span>
+            <span class="badge badge-muted" *ngIf="c.estado === 'CONGELADA'">Congelada</span>
+            <span class="badge badge-muted" *ngIf="c.estado === 'ANULADA'">Anulada</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="cerrarHistorialPago()">Cerrar</button>
     </div>
   </div>
 </div>
