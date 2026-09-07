@@ -179,17 +179,11 @@
               </div>
               <div class="filtro-campo" *ngIf="miembrosAfectadosDisponibles.length > 0">
                 <label>Miembro</label>
-                <select class="filtro-select" [(ngModel)]="filtroMiembroAfectado">
-                  <option value="TODOS">Todos</option>
-                  <option *ngFor="let nombre of miembrosAfectadosDisponibles" [value]="nombre">{{ nombre }}</option>
-                </select>
+                <app-selector-buscable [(ngModel)]="filtroMiembroAfectado" [opciones]="opcionesFiltroMiembroAfectado" [compacto]="true" placeholder="Todos"></app-selector-buscable>
               </div>
               <div class="filtro-campo" *ngIf="registradoresDisponibles.length > 1">
                 <label>Registrado por</label>
-                <select class="filtro-select" [(ngModel)]="filtroRegistradoPor">
-                  <option value="TODOS">Todos</option>
-                  <option *ngFor="let r of registradoresDisponibles" [value]="r.id">{{ r.nombre }}</option>
-                </select>
+                <app-selector-buscable [(ngModel)]="filtroRegistradoPor" [opciones]="opcionesFiltroRegistradoPor" [compacto]="true" placeholder="Todos"></app-selector-buscable>
               </div>
               <div class="filtro-campo" *ngIf="fondosDisponibles.length > 0">
                 <label>Fondo</label>
@@ -454,10 +448,7 @@
             </div>
             <div class="filtro-campo" *ngIf="esDirectiva && miembrosConMultaDisponibles.length > 1">
               <label>Miembro</label>
-              <select class="filtro-select" [(ngModel)]="filtroMultaMiembro">
-                <option value="TODOS">Todos</option>
-                <option *ngFor="let n of miembrosConMultaDisponibles" [value]="n">{{ n }}</option>
-              </select>
+              <app-selector-buscable [(ngModel)]="filtroMultaMiembro" [opciones]="opcionesFiltroMultaMiembro" [compacto]="true" placeholder="Todos"></app-selector-buscable>
             </div>
             <button class="filtro-btn filtro-limpiar" *ngIf="hayFiltrosMultaActivos" (click)="limpiarFiltrosMulta()">
               <mat-icon>close</mat-icon> Limpiar
@@ -734,10 +725,7 @@
     <div class="modal-body">
       <div class="form-group">
         <label>Miembro *</label>
-        <select [(ngModel)]="aporteForm.usuarioId" class="form-input">
-          <option value="0" disabled>Selecciona un miembro</option>
-          <option *ngFor="let m of miembros" [value]="m.id">{{ m.nombre }} {{ m.apellido }}</option>
-        </select>
+        <app-selector-buscable [(ngModel)]="aporteForm.usuarioId" [opciones]="opcionesMiembros" placeholder="Escribe el nombre del miembro..."></app-selector-buscable>
       </div>
       <div class="form-row">
         <div class="form-group">
@@ -805,8 +793,10 @@
             {{ todosMiembrosSeleccionados ? 'Ninguno' : 'Todos' }}
           </button>
         </div>
+        <input type="text" class="form-input buscador-miembros" [(ngModel)]="gastoCompartidoForm.busquedaMiembro"
+               placeholder="Escribe para buscar un miembro...">
         <div class="miembros-selector">
-          <div class="miembro-chip" *ngFor="let m of miembros" [class.selected]="esMiembroSeleccionado(m.id)" (click)="toggleMiembro(m.id)">
+          <div class="miembro-chip" *ngFor="let m of filtrarMiembrosPorTexto(gastoCompartidoForm.busquedaMiembro)" [class.selected]="esMiembroSeleccionado(m.id)" (click)="toggleMiembro(m.id)">
             <div class="chip-avatar">{{ getInitiales(m.nombre, m.apellido) }}</div>
             <span>{{ m.nombre }}</span>
             <mat-icon *ngIf="esMiembroSeleccionado(m.id)">check_circle</mat-icon>
@@ -905,10 +895,7 @@
     <div class="modal-body">
       <div class="form-group">
         <label>Miembro *</label>
-        <select [(ngModel)]="multaForm.usuarioId" class="form-input">
-          <option value="0" disabled>Selecciona un miembro</option>
-          <option *ngFor="let m of miembros" [value]="m.id">{{ m.nombre }} {{ m.apellido }}</option>
-        </select>
+        <app-selector-buscable [(ngModel)]="multaForm.usuarioId" [opciones]="opcionesMiembros" placeholder="Escribe el nombre del miembro..."></app-selector-buscable>
       </div>
       <div class="form-group">
         <label>Motivo *</label>
@@ -982,8 +969,10 @@
       </div>
       <div class="form-group">
         <label>Cantidad por miembro *</label>
+        <input type="text" class="form-input buscador-miembros" [(ngModel)]="gastoIndividualForm.busquedaMiembro"
+               placeholder="Escribe para buscar un miembro...">
         <div class="cantidades-lista">
-          <div class="cantidad-item" *ngFor="let m of miembros">
+          <div class="cantidad-item" *ngFor="let m of filtrarMiembrosPorTexto(gastoIndividualForm.busquedaMiembro)">
             <div class="cantidad-miembro">
               <div class="chip-avatar">{{ getInitiales(m.nombre, m.apellido) }}</div>
               <span>{{ m.nombre }} {{ m.apellido }}</span>
@@ -1240,8 +1229,10 @@
             </div>
             <div class="form-group">
               <label>Cantidad por miembro</label>
+              <input type="text" class="form-input buscador-miembros" [(ngModel)]="busquedaMiembroPedidoItem"
+                     placeholder="Escribe para buscar un miembro...">
               <div class="cantidades-lista">
-                <div class="cantidad-item" *ngFor="let m of miembros">
+                <div class="cantidad-item" *ngFor="let m of filtrarMiembrosPorTexto(busquedaMiembroPedidoItem)">
                   <div class="cantidad-miembro">
                     <div class="chip-avatar">{{ getInitiales(m.nombre, m.apellido) }}</div>
                     <span>{{ m.nombre }} {{ m.apellido }}</span>

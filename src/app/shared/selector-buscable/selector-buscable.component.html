@@ -1,0 +1,26 @@
+<div class="selector-buscable" [class.compacto]="compacto">
+  <input
+    type="text"
+    class="form-input"
+    [(ngModel)]="query"
+    [placeholder]="placeholder"
+    [disabled]="disabled"
+    (input)="onInput()"
+    (focus)="onFocus()"
+    (keydown)="onKeydown($event)"
+    autocomplete="off">
+  <mat-icon class="selector-buscable-icono">search</mat-icon>
+
+  <div class="selector-buscable-dropdown" *ngIf="abierto">
+    <div class="selector-buscable-opcion"
+         *ngFor="let o of opcionesFiltradas; let i = index"
+         [class.activa]="i === indiceActivo"
+         (mousedown)="$event.preventDefault(); seleccionar(o)"
+         (mouseenter)="indiceActivo = i">
+      {{ o.label }}
+    </div>
+    <div class="selector-buscable-vacio" *ngIf="opcionesFiltradas.length === 0">
+      {{ sinResultadosTexto }}
+    </div>
+  </div>
+</div>

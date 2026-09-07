@@ -21,6 +21,7 @@ import { MultaService, MultaResponse } from '../../../core/services/multa.servic
 import { NotificacionService } from '../../../core/services/notificacion.service';
 import { PedidoService, PedidoResponse } from '../../../core/services/pedido.service';
 import { PagoProgramadoService, PagoProgramadoResponse, CuotaResponse, ReactivacionInfo, MiembroFaltante } from '../../../core/services/pago-programado.service';
+import { SelectorBuscableComponent, OpcionBuscable } from '../../../shared/selector-buscable/selector-buscable.component';
 
 @Component({
   selector: 'app-grupo-detail',
@@ -34,7 +35,8 @@ import { PagoProgramadoService, PagoProgramadoResponse, CuotaResponse, Reactivac
     MatSnackBarModule,
     MatProgressSpinnerModule,
     MatTabsModule,
-    MatTooltipModule
+    MatTooltipModule,
+    SelectorBuscableComponent
   ],
   templateUrl: './grupo-detail.component.html',
   styleUrls: ['./grupo-detail.component.scss']
@@ -143,8 +145,9 @@ export class GrupoDetailComponent implements OnInit {
 
   // Forms
   aporteForm = { usuarioId: 0, monto: 0, fecha: '', descripcion: '', fondo: 'CARNAVAL' as TipoFondo };
-  gastoCompartidoForm = { descripcion: '', montoTotal: 0, fecha: '', usuarioIds: [] as number[], fondo: 'CARNAVAL' as TipoFondo, montoCarnavalManual: 0, montoAhorroManual: 0 };
-  gastoIndividualForm = { descripcion: '', precioUnitario: 0, fecha: '', cantidades: {} as {[key: number]: number}, fondo: 'CARNAVAL' as TipoFondo, montoCarnavalManual: 0, montoAhorroManual: 0 };
+  gastoCompartidoForm = { descripcion: '', montoTotal: 0, fecha: '', usuarioIds: [] as number[], fondo: 'CARNAVAL' as TipoFondo, montoCarnavalManual: 0, montoAhorroManual: 0, busquedaMiembro: '' };
+  gastoIndividualForm = { descripcion: '', precioUnitario: 0, fecha: '', cantidades: {} as {[key: number]: number}, fondo: 'CARNAVAL' as TipoFondo, montoCarnavalManual: 0, montoAhorroManual: 0, busquedaMiembro: '' };
+  busquedaMiembroPedidoItem: string = '';
   multaForm = { usuarioId: 0, motivo: '', monto: 0, fecha: '', periodoMes: new Date().getMonth() + 1, periodoAnio: new Date().getFullYear() };
   ingresoDirectoForm = { descripcion: '', monto: 0, fecha: '', fondo: 'CARNAVAL' as TipoFondo };
   gastoDirectoForm = { descripcion: '', monto: 0, fecha: '', fondo: 'CARNAVAL' as TipoFondo, montoCarnavalManual: 0, montoAhorroManual: 0 };
@@ -280,9 +283,12 @@ export class GrupoDetailComponent implements OnInit {
     this.gastoCompartidoForm.fondo = 'CARNAVAL';
     this.gastoCompartidoForm.montoCarnavalManual = 0;
     this.gastoCompartidoForm.montoAhorroManual = 0;
+    this.gastoCompartidoForm.busquedaMiembro = '';
     this.gastoIndividualForm.fondo = 'CARNAVAL';
     this.gastoIndividualForm.montoCarnavalManual = 0;
     this.gastoIndividualForm.montoAhorroManual = 0;
+    this.gastoIndividualForm.busquedaMiembro = '';
+    this.busquedaMiembroPedidoItem = '';
     this.aporteForm.fondo = 'CARNAVAL';
     this.ingresoDirectoForm.fondo = 'CARNAVAL';
     this.gastoDirectoForm.fondo = 'CARNAVAL';
@@ -559,6 +565,29 @@ export class GrupoDetailComponent implements OnInit {
     else this.gastoCompartidoForm.usuarioIds.splice(idx, 1);
   }
 
+  // Filtra la grilla de tarjetas/filas de miembros mientras se escribe, en vez
+  // de tener que scrollear con el mouse para encontrar a alguien.
+  filtrarMiembrosPorTexto(query: string): MiembroGrupo[] {
+    const q = this.normalizarTexto(query);
+    if (!q) return this.miembros;
+    const tokens = q.split(/\s+/).filter(Boolean);
+    return this.miembros.filter(m => {
+      const label = this.normalizarTexto(`${m.nombre} ${m.apellido}`);
+      return tokens.every(t => label.includes(t));
+    });
+  }
+
+  private normalizarTexto(s: string): string {
+    return (s || '')
+      .toLowerCase()
+      .replace(/[aàáâã]/g, 'a')
+      .replace(/[eèéê]/g, 'e')
+      .replace(/[iìíî]/g, 'i')
+      .replace(/[oòóôõ]/g, 'o')
+      .replace(/[uùúû]/g, 'u')
+      .replace(/ñ/g, 'n');
+  }
+
   esMiembroSeleccionado(miembroId: number): boolean {
     return this.gastoCompartidoForm.usuarioIds.includes(miembroId);
   }
@@ -649,6 +678,31 @@ export class GrupoDetailComponent implements OnInit {
     return Array.from(map.entries())
       .map(([id, nombre]) => ({ id, nombre }))
       .sort((a, b) => a.nombre.localeCompare(b.nombre));
+  }
+
+  // ============================================================
+  // OPCIONES PARA LOS SELECTORES BUSCABLES (escribir en vez de scrollear)
+  // ============================================================
+  get opcionesMiembros(): OpcionBuscable[] {
+    return this.miembros.map(m => ({ id: m.id, label: `${m.nombre} ${m.apellido}` }));
+  }
+
+  get opcionesMiembrosGestion(): OpcionBuscable[] {
+    return this.miembrosGestion
+      .filter(m => m.activo !== false)
+      .map(m => ({ id: m.id, label: `${m.nombre} ${m.apellido}` }));
+  }
+
+  get opcionesFiltroMiembroAfectado(): OpcionBuscable[] {
+    return [{ id: 'TODOS', label: 'Todos' }, ...this.miembrosAfectadosDisponibles.map(n => ({ id: n, label: n }))];
+  }
+
+  get opcionesFiltroRegistradoPor(): OpcionBuscable[] {
+    return [{ id: 'TODOS', label: 'Todos' }, ...this.registradoresDisponibles.map(r => ({ id: String(r.id), label: r.nombre }))];
+  }
+
+  get opcionesFiltroMultaMiembro(): OpcionBuscable[] {
+    return [{ id: 'TODOS', label: 'Todos' }, ...this.miembrosConMultaDisponibles.map(n => ({ id: n, label: n }))];
   }
 
   get fondosDisponibles(): TipoFondo[] {
@@ -945,6 +999,7 @@ export class GrupoDetailComponent implements OnInit {
 
   toggleItemExpandido(index: number): void {
     this.itemExpandidoIndex = this.itemExpandidoIndex === index ? null : index;
+    this.busquedaMiembroPedidoItem = '';
   }
 
   getTotalItemPedido(item: any): number {
