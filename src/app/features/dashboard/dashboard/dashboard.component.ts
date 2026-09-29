@@ -105,6 +105,7 @@ export class DashboardComponent implements OnInit {
       case 'FONDO_BAJO': return 'trending_down';
       case 'GRUPO': return 'group';
       case 'PEDIDO': return 'local_mall';
+      case 'SOLICITUD_PAGO': return 'receipt_long';
       default: return 'notifications';
     }
   }

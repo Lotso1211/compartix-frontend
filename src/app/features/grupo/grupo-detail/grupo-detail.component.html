@@ -485,6 +485,15 @@
                   <button class="btn-eliminar-multa" *ngIf="esDirectiva && m.estado === 'PENDIENTE'" (click)="eliminarMulta(m)">
                     <mat-icon>delete_outline</mat-icon> Eliminar
                   </button>
+                  <ng-container *ngIf="!esDirectiva && m.estado === 'PENDIENTE'">
+                    <span class="badge badge-warning" *ngIf="tieneSolicitudPendiente('MULTA', m.id)">🕒 En revisión</span>
+                    <button class="btn-sm btn-primary-sm" *ngIf="!tieneSolicitudPendiente('MULTA', m.id)" (click)="abrirSubirComprobante('MULTA', m)">
+                      <mat-icon>upload_file</mat-icon> Subir comprobante
+                    </button>
+                    <span class="badge-rechazo" *ngIf="!tieneSolicitudPendiente('MULTA', m.id) && ultimaSolicitudRechazada('MULTA', m.id) as r" [matTooltip]="r.motivoRechazo || 'Sin motivo indicado'">
+                      <mat-icon>error_outline</mat-icon> Comprobante anterior rechazado
+                    </span>
+                  </ng-container>
                 </div>
               </div>
             </div>
@@ -533,14 +542,17 @@
                   <span class="pedido-nombre">{{ p.nombre }}</span>
                   <span class="pedido-fecha text-muted">{{ p.fecha | date:'dd/MM/yyyy' }}</span>
                   <span class="badge" [class.badge-success]="p.estado === 'ABIERTO'" [class.badge-danger]="p.estado === 'CERRADO'">{{ p.estado }}</span>
+                  <span class="badge badge-success" *ngIf="!esDirectiva && p.estado === 'ABIERTO' && heRegistradoPedido(p)">✓ Ya registraste tu pedido</span>
+                  <span class="badge badge-warning" *ngIf="!esDirectiva && p.estado === 'ABIERTO' && !heRegistradoPedido(p)">Aún no registraste tu pedido</span>
                 </div>
                 <div class="pedido-total">
-                  <span class="total-label">Total</span>
+                  <span class="total-label">{{ esDirectiva ? 'Total' : 'Mi total' }}</span>
                   <span class="total-valor">{{ grupo?.moneda }} {{ p.totalGeneral | number:'1.2-2' }}</span>
                 </div>
               </div>
               <div class="pedido-actions">
-                <button class="btn-sm btn-primary-sm" (click)="verDetallePedido(p)"><mat-icon>visibility</mat-icon> Ver detalle</button>
+                <button class="btn-sm btn-primary-sm" *ngIf="!esDirectiva && p.estado === 'ABIERTO'" (click)="verDetallePedido(p)"><mat-icon>edit_note</mat-icon> Llenar mi pedido</button>
+                <button class="btn-sm btn-primary-sm" *ngIf="esDirectiva || p.estado !== 'ABIERTO'" (click)="verDetallePedido(p)"><mat-icon>visibility</mat-icon> Ver detalle</button>
                 <button class="btn-sm btn-primary-sm" *ngIf="esDirectiva && p.estado === 'ABIERTO'" (click)="editarPedido(p)"><mat-icon>edit</mat-icon> Editar</button>
                 <button class="btn-sm btn-success-sm" (click)="exportarPedidoExcel(p)"><mat-icon>download</mat-icon> Exportar CSV</button>
                 <button class="btn-sm btn-warning-sm" *ngIf="esDirectiva && p.estado === 'ABIERTO'" (click)="cerrarPedido(p)"><mat-icon>lock</mat-icon> Cerrar</button>
@@ -698,6 +710,15 @@
                   <span class="badge badge-warning" *ngIf="c.estado === 'VENCIDA'">Vencida</span>
                   <span class="badge badge-muted" *ngIf="c.estado === 'CONGELADA'">Congelada</span>
                   <span class="badge badge-muted" *ngIf="c.estado === 'ANULADA'">Anulada</span>
+                  <ng-container *ngIf="c.estado === 'PENDIENTE' || c.estado === 'VENCIDA'">
+                    <span class="badge badge-warning" *ngIf="tieneSolicitudPendiente('CUOTA', c.id)">🕒 En revisión</span>
+                    <button class="btn-sm btn-primary-sm" *ngIf="!tieneSolicitudPendiente('CUOTA', c.id)" (click)="abrirSubirComprobante('CUOTA', c)">
+                      <mat-icon>upload_file</mat-icon> Subir comprobante
+                    </button>
+                    <span class="badge-rechazo" *ngIf="!tieneSolicitudPendiente('CUOTA', c.id) && ultimaSolicitudRechazada('CUOTA', c.id) as r" [matTooltip]="r.motivoRechazo || 'Sin motivo indicado'">
+                      <mat-icon>error_outline</mat-icon> Comprobante anterior rechazado
+                    </span>
+                  </ng-container>
                 </div>
               </div>
             </div>
@@ -707,6 +728,67 @@
             </div>
           </div>
 
+        </div>
+      </mat-tab>
+
+      <!-- TAB SOLICITUDES DE PAGO -->
+      <mat-tab *ngIf="esDirectiva">
+      <ng-template mat-tab-label>
+        <mat-icon>receipt_long</mat-icon> Solicitudes
+        <span class="tab-badge" *ngIf="solicitudesPendientesCount > 0">{{ solicitudesPendientesCount }}</span>
+      </ng-template>
+        <div class="tab-content">
+          <div class="mov-filtros">
+            <button class="filtro-btn" [class.activo]="filtroSolicitudEstado === 'PENDIENTE'" (click)="filtroSolicitudEstado = 'PENDIENTE'"><mat-icon>hourglass_empty</mat-icon> Pendientes</button>
+            <button class="filtro-btn" [class.activo]="filtroSolicitudEstado === 'APROBADA'" (click)="filtroSolicitudEstado = 'APROBADA'"><mat-icon>check_circle</mat-icon> Aprobadas</button>
+            <button class="filtro-btn" [class.activo]="filtroSolicitudEstado === 'RECHAZADA'" (click)="filtroSolicitudEstado = 'RECHAZADA'"><mat-icon>cancel</mat-icon> Rechazadas</button>
+            <button class="filtro-btn" [class.activo]="filtroSolicitudEstado === 'TODAS'" (click)="filtroSolicitudEstado = 'TODAS'">Todas</button>
+          </div>
+
+          <div class="empty-state" *ngIf="solicitudesPago.length === 0">
+            <mat-icon class="empty-icon">receipt_long</mat-icon>
+            <p>Aún no hay comprobantes subidos por los miembros</p>
+          </div>
+          <div class="empty-state empty-state-filtros" *ngIf="solicitudesPago.length > 0 && getSolicitudesFiltradas().length === 0">
+            <mat-icon class="empty-icon">search_off</mat-icon>
+            <p>No hay solicitudes en este estado</p>
+          </div>
+
+          <div class="solicitudes-lista" *ngIf="getSolicitudesFiltradas().length > 0">
+            <div class="solicitud-card" *ngFor="let s of getSolicitudesFiltradas()">
+              <a [href]="s.comprobanteUrl" target="_blank" rel="noopener" class="solicitud-comprobante">
+                <img [src]="s.comprobanteUrl" alt="Comprobante">
+              </a>
+              <div class="solicitud-info">
+                <span class="solicitud-usuario">{{ s.nombreUsuario }}</span>
+                <span class="solicitud-detalle">
+                  <mat-icon>{{ s.tipo === 'CUOTA' ? 'event' : 'gavel' }}</mat-icon>
+                  {{ s.tipo === 'CUOTA' ? 'Cuota' : 'Multa' }}: {{ s.descripcion }}
+                </span>
+                <span class="text-muted">Subido el {{ s.creadoEn | date:'dd/MM/yyyy HH:mm' }}</span>
+                <span class="text-muted" *ngIf="s.estado !== 'PENDIENTE'">
+                  {{ s.estado === 'APROBADA' ? 'Aprobado' : 'Rechazado' }} por {{ s.revisadoPor }} el {{ s.fechaRevision | date:'dd/MM/yyyy' }}
+                </span>
+                <span class="solicitud-motivo" *ngIf="s.estado === 'RECHAZADA' && s.motivoRechazo">
+                  <mat-icon>info_outline</mat-icon> {{ s.motivoRechazo }}
+                </span>
+              </div>
+              <div class="solicitud-right">
+                <span class="solicitud-monto">{{ grupo?.moneda }} {{ s.monto | number:'1.2-2' }}</span>
+                <span class="badge badge-warning" *ngIf="s.estado === 'PENDIENTE'">Pendiente</span>
+                <span class="badge badge-success" *ngIf="s.estado === 'APROBADA'">✓ Aprobada</span>
+                <span class="badge badge-danger" *ngIf="s.estado === 'RECHAZADA'">Rechazada</span>
+                <div class="solicitud-actions" *ngIf="s.estado === 'PENDIENTE'">
+                  <button class="btn-pagar" (click)="aprobarSolicitud(s)">
+                    <mat-icon>check_circle_outline</mat-icon> Aprobar
+                  </button>
+                  <button class="btn-eliminar-multa" (click)="abrirRechazarSolicitud(s)">
+                    <mat-icon>cancel</mat-icon> Rechazar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </mat-tab>
 
@@ -1285,7 +1367,8 @@
         <span class="detalle-fecha text-muted">{{ pedidoSeleccionado.fecha | date:'dd/MM/yyyy' }}</span>
         <span class="detalle-total">Total: {{ grupo?.moneda }} {{ pedidoSeleccionado.totalGeneral | number:'1.2-2' }}</span>
       </div>
-      <div class="pedido-detalle-tabla">
+      <!-- VISTA DIRECTIVA: desglose completo de todos los miembros -->
+      <div class="pedido-detalle-tabla" *ngIf="esDirectiva">
         <div class="tabla-header">
           <span>Item</span><span>Usuario</span><span>Cantidad</span><span>P. Unitario</span><span>Subtotal</span>
         </div>
@@ -1307,11 +1390,44 @@
           <span>{{ grupo?.moneda }} {{ pedidoSeleccionado.totalGeneral | number:'1.2-2' }}</span>
         </div>
       </div>
+
+      <!-- VISTA MIEMBRO: llenar su propio pedido (editable si sigue abierto) -->
+      <div class="mi-pedido-form" *ngIf="!esDirectiva">
+        <p class="text-muted" style="margin-bottom: 14px;" *ngIf="pedidoSeleccionado.estado === 'ABIERTO'">
+          Indica cuántas unidades de cada item quieres. Puedes actualizarlo mientras el pedido siga abierto.
+        </p>
+        <div class="mi-pedido-item" *ngFor="let item of pedidoSeleccionado.items">
+          <div class="mi-pedido-item-info">
+            <span class="mi-pedido-item-nombre">{{ item.nombre }}</span>
+            <span class="text-muted" *ngIf="item.descripcion">{{ item.descripcion }}</span>
+            <span class="text-muted">{{ grupo?.moneda }} {{ item.precioUnitario | number:'1.2-2' }} c/u</span>
+          </div>
+          <div class="mi-pedido-item-cantidad">
+            <input type="number" min="0" step="1" class="form-input"
+                   *ngIf="pedidoSeleccionado.estado === 'ABIERTO'"
+                   [(ngModel)]="miPedidoCantidades[item.id]" placeholder="0">
+            <span class="mi-pedido-cantidad-fija" *ngIf="pedidoSeleccionado.estado !== 'ABIERTO'">
+              {{ miPedidoCantidades[item.id] || 0 }}
+            </span>
+            <span class="mi-pedido-subtotal">
+              {{ grupo?.moneda }} {{ (miPedidoCantidades[item.id] || 0) * item.precioUnitario | number:'1.2-2' }}
+            </span>
+          </div>
+        </div>
+        <div class="mi-pedido-total">
+          <span>TU TOTAL</span>
+          <span>{{ grupo?.moneda }} {{ getTotalMiPedido() | number:'1.2-2' }}</span>
+        </div>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn-secondary" (click)="showDetallePedido = false">Cerrar</button>
-      <button class="btn-primary" (click)="exportarPedidoExcel(pedidoSeleccionado!)">
+      <button class="btn-primary" *ngIf="esDirectiva || pedidoSeleccionado.estado !== 'ABIERTO'" (click)="exportarPedidoExcel(pedidoSeleccionado!)">
         <mat-icon>download</mat-icon> Exportar CSV
+      </button>
+      <button class="btn-primary" *ngIf="!esDirectiva && pedidoSeleccionado.estado === 'ABIERTO'" (click)="guardarMiPedido()" [disabled]="loadingAction">
+        <mat-spinner diameter="18" *ngIf="loadingAction"></mat-spinner>
+        <span>{{ loadingAction ? 'Guardando...' : 'Guardar mi pedido' }}</span>
       </button>
     </div>
   </div>
@@ -1416,6 +1532,66 @@
       <button class="btn-primary" (click)="confirmarAnularCuota()" [disabled]="loadingAction">
         <mat-spinner diameter="18" *ngIf="loadingAction"></mat-spinner>
         <span>{{ loadingAction ? 'Guardando...' : 'Anular mensualidad' }}</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL SUBIR COMPROBANTE -->
+<div class="modal-overlay" *ngIf="showSubirComprobante" (click)="cerrarSubirComprobante()">
+  <div class="modal animate-fadeInUp" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Subir comprobante</h2>
+      <button class="icon-btn" (click)="cerrarSubirComprobante()"><mat-icon>close</mat-icon></button>
+    </div>
+    <div class="modal-body" *ngIf="comprobanteItem">
+      <p class="text-muted" style="margin-bottom: 14px;">
+        Vas a enviar el comprobante de pago de
+        <strong *ngIf="comprobanteTipo === 'CUOTA'">{{ comprobanteItem.nombrePago }} ({{ getNombreMes(comprobanteItem.mes) }} {{ comprobanteItem.anio }})</strong>
+        <strong *ngIf="comprobanteTipo === 'MULTA'">multa: {{ comprobanteItem.motivo }}</strong>
+        — {{ grupo?.moneda }} {{ montoComprobante() | number:'1.2-2' }}.
+        La directiva lo revisará y podrá aprobarlo o rechazarlo.
+      </p>
+      <div class="form-group">
+        <label>Imagen del comprobante *</label>
+        <input type="file" accept="image/*" class="form-input" (change)="onArchivoComprobante($event)">
+        <span class="text-muted" *ngIf="comprobanteNombreArchivo" style="display:block; margin-top:6px;">
+          <mat-icon style="font-size:16px; vertical-align:middle;">check</mat-icon> {{ comprobanteNombreArchivo }}
+        </span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="cerrarSubirComprobante()">Cancelar</button>
+      <button class="btn-primary" (click)="enviarComprobante()" [disabled]="loadingAction || !comprobanteArchivo">
+        <mat-spinner diameter="18" *ngIf="loadingAction"></mat-spinner>
+        <span>{{ loadingAction ? 'Enviando...' : 'Enviar comprobante' }}</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL RECHAZAR SOLICITUD -->
+<div class="modal-overlay" *ngIf="showRechazarSolicitud" (click)="cerrarRechazarSolicitud()">
+  <div class="modal animate-fadeInUp" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Rechazar comprobante</h2>
+      <button class="icon-btn" (click)="cerrarRechazarSolicitud()"><mat-icon>close</mat-icon></button>
+    </div>
+    <div class="modal-body" *ngIf="solicitudARechazar as s">
+      <p class="text-muted" style="margin-bottom: 14px;">
+        Vas a rechazar el comprobante de <strong>{{ s.nombreUsuario }}</strong> por {{ grupo?.moneda }} {{ s.monto | number:'1.2-2' }}.
+        Se le notificará para que pueda subir uno nuevo.
+      </p>
+      <div class="form-group">
+        <label>Motivo (opcional)</label>
+        <input type="text" [(ngModel)]="motivoRechazoSolicitud" placeholder="Ej: La imagen no se ve, el monto no coincide..." class="form-input">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="cerrarRechazarSolicitud()">Cancelar</button>
+      <button class="btn-primary" (click)="confirmarRechazoSolicitud()" [disabled]="loadingAction">
+        <mat-spinner diameter="18" *ngIf="loadingAction"></mat-spinner>
+        <span>{{ loadingAction ? 'Guardando...' : 'Rechazar comprobante' }}</span>
       </button>
     </div>
   </div>

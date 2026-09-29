@@ -58,4 +58,8 @@ export class PedidoService {
   eliminarPedido(grupoId: number, pedidoId: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${grupoId}/pedidos/${pedidoId}`);
   }
+
+  actualizarMiPedido(grupoId: number, pedidoId: number, cantidades: {[itemId: number]: number}): Observable<PedidoResponse> {
+    return this.http.put<PedidoResponse>(`${this.apiUrl}/${grupoId}/pedidos/${pedidoId}/mi-pedido`, { cantidades });
+  }
 }

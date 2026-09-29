@@ -21,6 +21,7 @@ import { MultaService, MultaResponse } from '../../../core/services/multa.servic
 import { NotificacionService } from '../../../core/services/notificacion.service';
 import { PedidoService, PedidoResponse } from '../../../core/services/pedido.service';
 import { PagoProgramadoService, PagoProgramadoResponse, CuotaResponse, ReactivacionInfo, MiembroFaltante } from '../../../core/services/pago-programado.service';
+import { SolicitudPagoService, SolicitudPagoResponse } from '../../../core/services/solicitud-pago.service';
 import { SelectorBuscableComponent, OpcionBuscable } from '../../../shared/selector-buscable/selector-buscable.component';
 
 @Component({
@@ -128,6 +129,21 @@ export class GrupoDetailComponent implements OnInit {
   cuotaAAnular: CuotaResponse | null = null;
   motivoAnulacionCuota: string = '';
 
+  // Solicitudes de pago (comprobante → notificación → aprobación)
+  solicitudesPago: SolicitudPagoResponse[] = [];
+  misSolicitudesPago: SolicitudPagoResponse[] = [];
+  filtroSolicitudEstado: string = 'PENDIENTE';
+
+  showSubirComprobante = false;
+  comprobanteTipo: 'CUOTA' | 'MULTA' | null = null;
+  comprobanteItem: any = null;
+  comprobanteArchivo: File | null = null;
+  comprobanteNombreArchivo: string = '';
+
+  showRechazarSolicitud = false;
+  solicitudARechazar: SolicitudPagoResponse | null = null;
+  motivoRechazoSolicitud: string = '';
+
   // Modal
   modalActivo: string = '';
   loadingAction = false;
@@ -186,7 +202,8 @@ export class GrupoDetailComponent implements OnInit {
     private pedidoService: PedidoService,
     private pagoProgramadoService: PagoProgramadoService,
     private themeService: ThemeService,
-    private notificacionService: NotificacionService
+    private notificacionService: NotificacionService,
+    private solicitudPagoService: SolicitudPagoService
   ) {}
 
   ngOnInit(): void {
@@ -233,6 +250,7 @@ export class GrupoDetailComponent implements OnInit {
           this.multaService.obtenerMultas(this.grupoId).subscribe(m => this.multas = m);
           this.pedidoService.obtenerPedidos(this.grupoId).subscribe(p => this.pedidos = p);
           this.pagoProgramadoService.obtenerPagosProgramados(this.grupoId).subscribe(p => this.pagosProgramados = p);
+          this.solicitudPagoService.listar(this.grupoId).subscribe(s => this.solicitudesPago = s);
           this.cargarCuotasMes();
           this.kardexService.obtenerKardexGrupo(this.grupoId).subscribe({
             next: k => { this.kardexList = k; this.loading = false; },
@@ -243,6 +261,7 @@ export class GrupoDetailComponent implements OnInit {
           this.multaService.obtenerMisMultas(this.grupoId).subscribe(m => this.multas = m);
           this.pedidoService.obtenerPedidos(this.grupoId).subscribe(p => this.pedidos = p);
           this.pagoProgramadoService.obtenerMisCuotas(this.grupoId).subscribe(c => this.misCuotas = c);
+          this.solicitudPagoService.misSolicitudes(this.grupoId).subscribe(s => this.misSolicitudesPago = s);
           this.kardexService.obtenerMiKardex(this.grupoId).subscribe({
             next: k => { this.miKardex = k; this.loading = false; },
             error: () => this.loading = false
@@ -1078,9 +1097,46 @@ export class GrupoDetailComponent implements OnInit {
     this.modalActivo = 'pedido';
   }
 
+  miPedidoCantidades: {[itemId: number]: number} = {};
+
   verDetallePedido(pedido: PedidoResponse): void {
     this.pedidoSeleccionado = pedido;
+    this.miPedidoCantidades = {};
+    if (!this.esDirectiva) {
+      pedido.items.forEach(item => {
+        const mia = item.detalles.find(d => d.usuarioId === this.usuario?.id);
+        this.miPedidoCantidades[item.id] = mia ? mia.cantidad : 0;
+      });
+    }
     this.showDetallePedido = true;
+  }
+
+  heRegistradoPedido(pedido: PedidoResponse): boolean {
+    return pedido.items.some(item => item.detalles.some(d => d.usuarioId === this.usuario?.id));
+  }
+
+  getTotalMiPedido(): number {
+    if (!this.pedidoSeleccionado) return 0;
+    return this.pedidoSeleccionado.items.reduce((total, item) =>
+      total + ((this.miPedidoCantidades[item.id] || 0) * item.precioUnitario), 0);
+  }
+
+  guardarMiPedido(): void {
+    if (!this.pedidoSeleccionado) return;
+    this.loadingAction = true;
+    this.pedidoService.actualizarMiPedido(this.grupoId, this.pedidoSeleccionado.id, this.miPedidoCantidades).subscribe({
+      next: (p) => {
+        this.pedidoSeleccionado = p;
+        const idx = this.pedidos.findIndex(x => x.id === p.id);
+        if (idx !== -1) this.pedidos[idx] = p;
+        this.loadingAction = false;
+        this.snackBar.open('✅ Tu pedido quedó guardado', 'Cerrar', { duration: 3000 });
+      },
+      error: (err) => {
+        this.loadingAction = false;
+        this.snackBar.open(err.error?.message || 'Error al guardar tu pedido', 'Cerrar', { duration: 3000 });
+      }
+    });
   }
 
   cerrarPedido(pedido: PedidoResponse): void {
@@ -1309,6 +1365,128 @@ export class GrupoDetailComponent implements OnInit {
       },
       error: (err) => {
         this.snackBar.open(err.error?.message || 'Error al revertir', 'Cerrar', { duration: 3000 });
+      }
+    });
+  }
+
+  // ============================================================
+  // SOLICITUDES DE PAGO (comprobante → notificación → aprobación)
+  // ============================================================
+  get solicitudesPendientesCount(): number {
+    return this.solicitudesPago.filter(s => s.estado === 'PENDIENTE').length;
+  }
+
+  getSolicitudesFiltradas(): SolicitudPagoResponse[] {
+    if (this.filtroSolicitudEstado === 'TODAS') return this.solicitudesPago;
+    return this.solicitudesPago.filter(s => s.estado === this.filtroSolicitudEstado);
+  }
+
+  tieneSolicitudPendiente(tipo: 'CUOTA' | 'MULTA', id: number): boolean {
+    return this.misSolicitudesPago.some(s => s.estado === 'PENDIENTE'
+      && ((tipo === 'CUOTA' && s.cuotaId === id) || (tipo === 'MULTA' && s.multaId === id)));
+  }
+
+  ultimaSolicitudRechazada(tipo: 'CUOTA' | 'MULTA', id: number): SolicitudPagoResponse | null {
+    // misSolicitudesPago ya viene ordenada desc por fecha desde el backend.
+    return this.misSolicitudesPago.find(s => s.estado === 'RECHAZADA'
+      && ((tipo === 'CUOTA' && s.cuotaId === id) || (tipo === 'MULTA' && s.multaId === id))) || null;
+  }
+
+  abrirSubirComprobante(tipo: 'CUOTA' | 'MULTA', item: any): void {
+    if (this.esDirectiva) return;
+    this.comprobanteTipo = tipo;
+    this.comprobanteItem = item;
+    this.comprobanteArchivo = null;
+    this.comprobanteNombreArchivo = '';
+    this.showSubirComprobante = true;
+  }
+
+  cerrarSubirComprobante(): void {
+    this.showSubirComprobante = false;
+    this.comprobanteTipo = null;
+    this.comprobanteItem = null;
+    this.comprobanteArchivo = null;
+    this.comprobanteNombreArchivo = '';
+  }
+
+  onArchivoComprobante(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files && input.files[0];
+    if (!file) return;
+    this.comprobanteArchivo = file;
+    this.comprobanteNombreArchivo = file.name;
+  }
+
+  montoComprobante(): number {
+    if (!this.comprobanteItem) return 0;
+    if (this.comprobanteTipo === 'CUOTA') {
+      const c = this.comprobanteItem as CuotaResponse;
+      return c.monto + (c.multaAplicada ? c.montoMulta : 0);
+    }
+    return this.comprobanteItem.monto;
+  }
+
+  enviarComprobante(): void {
+    if (!this.comprobanteArchivo || !this.comprobanteItem || !this.comprobanteTipo) return;
+    this.loadingAction = true;
+    const obs = this.comprobanteTipo === 'CUOTA'
+      ? this.solicitudPagoService.subirComprobanteCuota(this.grupoId, this.comprobanteItem.id, this.comprobanteArchivo)
+      : this.solicitudPagoService.subirComprobanteMulta(this.grupoId, this.comprobanteItem.id, this.comprobanteArchivo);
+    obs.subscribe({
+      next: (s) => {
+        this.misSolicitudesPago = [s, ...this.misSolicitudesPago];
+        this.loadingAction = false;
+        this.cerrarSubirComprobante();
+        this.snackBar.open('✅ Comprobante enviado — la directiva lo revisará pronto', 'Cerrar', { duration: 4000 });
+      },
+      error: (err) => {
+        this.loadingAction = false;
+        this.snackBar.open(err.error?.message || 'Error al subir el comprobante', 'Cerrar', { duration: 3000 });
+      }
+    });
+  }
+
+  aprobarSolicitud(s: SolicitudPagoResponse): void {
+    if (!this.esDirectiva) return;
+    this.solicitudPagoService.aprobar(this.grupoId, s.id).subscribe({
+      next: (actualizada) => {
+        Object.assign(s, actualizada);
+        this.snackBar.open('✅ Pago aprobado', 'Cerrar', { duration: 3000 });
+        this.grupoService.obtenerSaldoGrupo(this.grupoId).subscribe(sg => this.saldo = sg);
+        this.kardexService.obtenerKardexGrupo(this.grupoId).subscribe(k => this.kardexList = k);
+        if (s.tipo === 'CUOTA') this.cargarCuotasMes();
+        else this.multaService.obtenerMultas(this.grupoId).subscribe(m => this.multas = m);
+      },
+      error: (err) => this.snackBar.open(err.error?.message || 'Error al aprobar', 'Cerrar', { duration: 3000 })
+    });
+  }
+
+  abrirRechazarSolicitud(s: SolicitudPagoResponse): void {
+    if (!this.esDirectiva) return;
+    this.solicitudARechazar = s;
+    this.motivoRechazoSolicitud = '';
+    this.showRechazarSolicitud = true;
+  }
+
+  cerrarRechazarSolicitud(): void {
+    this.showRechazarSolicitud = false;
+    this.solicitudARechazar = null;
+    this.motivoRechazoSolicitud = '';
+  }
+
+  confirmarRechazoSolicitud(): void {
+    if (!this.solicitudARechazar) return;
+    this.loadingAction = true;
+    this.solicitudPagoService.rechazar(this.grupoId, this.solicitudARechazar.id, this.motivoRechazoSolicitud).subscribe({
+      next: (actualizada) => {
+        Object.assign(this.solicitudARechazar!, actualizada);
+        this.loadingAction = false;
+        this.snackBar.open('Comprobante rechazado', 'Cerrar', { duration: 3000 });
+        this.cerrarRechazarSolicitud();
+      },
+      error: (err) => {
+        this.loadingAction = false;
+        this.snackBar.open(err.error?.message || 'Error al rechazar', 'Cerrar', { duration: 3000 });
       }
     });
   }
