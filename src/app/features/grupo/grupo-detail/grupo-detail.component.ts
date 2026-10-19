@@ -20,7 +20,7 @@ import { Usuario } from '../../../core/models/usuario.model';
 import { MultaService, MultaResponse } from '../../../core/services/multa.service';
 import { NotificacionService } from '../../../core/services/notificacion.service';
 import { PedidoService, PedidoResponse } from '../../../core/services/pedido.service';
-import { PagoProgramadoService, PagoProgramadoResponse, CuotaResponse, ReactivacionInfo, MiembroFaltante } from '../../../core/services/pago-programado.service';
+import { PagoProgramadoService, PagoProgramadoResponse, CuotaResponse, ReactivacionInfo, MiembroFaltante, MetaPendienteResponse } from '../../../core/services/pago-programado.service';
 import { SolicitudPagoService, SolicitudPagoResponse } from '../../../core/services/solicitud-pago.service';
 import { SelectorBuscableComponent, OpcionBuscable } from '../../../shared/selector-buscable/selector-buscable.component';
 
@@ -123,6 +123,19 @@ export class GrupoDetailComponent implements OnInit {
   pagoHistorialSeleccionado: PagoProgramadoResponse | null = null;
   historialCuotas: CuotaResponse[] = [];
   loadingHistorial = false;
+
+  // Editar reparto de un pago programado
+  showEditarReparto = false;
+  pagoAEditarReparto: PagoProgramadoResponse | null = null;
+  editarRepartoForm: { montoCarnaval: number | null, montoAhorro: number | null, cupoCarnavalUsd: number | null, tipoCambio: number | null, mesesRestantesCarnaval: number | null } =
+    { montoCarnaval: null, montoAhorro: null, cupoCarnavalUsd: null, tipoCambio: null, mesesRestantesCarnaval: null };
+
+  // Metas pendientes (cupo de carnaval + pedidos abiertos)
+  showMetasPendientes = false;
+  pagoMetasSeleccionado: PagoProgramadoResponse | null = null;
+  metasPendientes: MetaPendienteResponse[] = [];
+  loadingMetas = false;
+  misMetasPendientes: MetaPendienteResponse[] = [];
 
   // Anular mensualidad
   showAnularCuota = false;
@@ -262,6 +275,13 @@ export class GrupoDetailComponent implements OnInit {
           this.pedidoService.obtenerPedidos(this.grupoId).subscribe(p => this.pedidos = p);
           this.pagoProgramadoService.obtenerMisCuotas(this.grupoId).subscribe(c => this.misCuotas = c);
           this.solicitudPagoService.misSolicitudes(this.grupoId).subscribe(s => this.misSolicitudesPago = s);
+          this.pagoProgramadoService.obtenerPagosProgramados(this.grupoId).subscribe(pagos => {
+            const activo = pagos.find(p => p.activo);
+            if (activo) {
+              this.pagoProgramadoService.obtenerMetasPendientes(this.grupoId, activo.id)
+                .subscribe(m => this.misMetasPendientes = m);
+            }
+          });
           this.kardexService.obtenerMiKardex(this.grupoId).subscribe({
             next: k => { this.miKardex = k; this.loading = false; },
             error: () => this.loading = false
@@ -1320,6 +1340,88 @@ export class GrupoDetailComponent implements OnInit {
     this.showHistorialPago = false;
     this.pagoHistorialSeleccionado = null;
     this.historialCuotas = [];
+  }
+
+  // ============================================================
+  // EDITAR REPARTO (Carnaval/Ahorro) DE UN PAGO PROGRAMADO
+  // ============================================================
+  abrirEditarReparto(pp: PagoProgramadoResponse): void {
+    if (!this.esDirectiva) return;
+    this.pagoAEditarReparto = pp;
+    this.editarRepartoForm = {
+      montoCarnaval: pp.montoCarnaval ?? 0,
+      montoAhorro: pp.montoAhorro ?? 0,
+      cupoCarnavalUsd: pp.cupoCarnavalUsd ?? null,
+      tipoCambio: pp.tipoCambio ?? null,
+      mesesRestantesCarnaval: pp.mesesRestantesCarnaval ?? null
+    };
+    this.showEditarReparto = true;
+  }
+
+  cerrarEditarReparto(): void {
+    this.showEditarReparto = false;
+    this.pagoAEditarReparto = null;
+  }
+
+  confirmarEditarReparto(): void {
+    if (!this.pagoAEditarReparto) return;
+    this.loadingAction = true;
+    this.pagoProgramadoService.editarReparto(this.grupoId, this.pagoAEditarReparto.id, this.editarRepartoForm).subscribe({
+      next: (actualizado) => {
+        const idx = this.pagosProgramados.findIndex(p => p.id === actualizado.id);
+        if (idx !== -1) this.pagosProgramados[idx] = actualizado;
+        this.loadingAction = false;
+        this.cerrarEditarReparto();
+        this.cargarCuotasMes();
+        this.snackBar.open('✅ Reparto actualizado — se aplicó a las cuotas pendientes', 'Cerrar', { duration: 3500 });
+      },
+      error: (err) => {
+        this.loadingAction = false;
+        this.snackBar.open(err.error?.message || 'Error al guardar el reparto', 'Cerrar', { duration: 3000 });
+      }
+    });
+  }
+
+  // ============================================================
+  // METAS PENDIENTES (cupo de carnaval + pedidos abiertos)
+  // ============================================================
+  abrirMetasPendientes(pp: PagoProgramadoResponse): void {
+    this.pagoMetasSeleccionado = pp;
+    this.showMetasPendientes = true;
+    this.loadingMetas = true;
+    this.pagoProgramadoService.obtenerMetasPendientes(this.grupoId, pp.id).subscribe({
+      next: (metas) => {
+        this.metasPendientes = metas;
+        this.loadingMetas = false;
+      },
+      error: (err) => {
+        this.loadingMetas = false;
+        this.snackBar.open(err.error?.message || 'Error al cargar las metas pendientes', 'Cerrar', { duration: 3000 });
+      }
+    });
+  }
+
+  cerrarMetasPendientes(): void {
+    this.showMetasPendientes = false;
+    this.pagoMetasSeleccionado = null;
+    this.metasPendientes = [];
+  }
+
+  agruparMetasPorSocio(metas: MetaPendienteResponse[]): { usuarioId: number, nombreUsuario: string, totalFalta: number, metas: MetaPendienteResponse[] }[] {
+    const porSocio = new Map<number, { usuarioId: number, nombreUsuario: string, totalFalta: number, metas: MetaPendienteResponse[] }>();
+    for (const m of metas) {
+      if (!porSocio.has(m.usuarioId)) {
+        porSocio.set(m.usuarioId, { usuarioId: m.usuarioId, nombreUsuario: m.nombreUsuario, totalFalta: 0, metas: [] });
+      }
+      const grupo = porSocio.get(m.usuarioId)!;
+      grupo.metas.push(m);
+      grupo.totalFalta += m.falta;
+    }
+    return Array.from(porSocio.values());
+  }
+
+  totalMisMetas(): number {
+    return this.misMetasPendientes.reduce((total, m) => total + m.falta, 0);
   }
 
   // ============================================================

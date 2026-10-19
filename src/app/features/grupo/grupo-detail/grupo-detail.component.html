@@ -130,6 +130,13 @@
           <span class="saldo-value">{{ grupo.moneda }} {{ (saldo.saldoAhorro || 0) | number:'1.2-2' }}</span>
         </div>
       </div>
+      <div class="saldo-metric comun">
+        <mat-icon>groups</mat-icon>
+        <div class="saldo-info">
+          <span class="saldo-label">Fondo Común</span>
+          <span class="saldo-value">{{ grupo.moneda }} {{ (saldo.saldoComun || 0) | number:'1.2-2' }}</span>
+        </div>
+      </div>
       <div class="saldo-metric disponible">
         <mat-icon>account_balance</mat-icon>
         <div class="saldo-info">
@@ -602,6 +609,12 @@
                   <button class="btn-sm btn-secondary-sm" *ngIf="pp.activo" (click)="abrirAgregarMiembroPago(pp)">
                     <mat-icon>person_add</mat-icon> Añadir miembro
                   </button>
+                  <button class="btn-sm btn-secondary-sm" *ngIf="pp.activo" (click)="abrirEditarReparto(pp)">
+                    <mat-icon>tune</mat-icon> Editar reparto
+                  </button>
+                  <button class="btn-sm btn-secondary-sm" (click)="abrirMetasPendientes(pp)">
+                    <mat-icon>flag</mat-icon> Metas pendientes
+                  </button>
                   <button class="btn-sm btn-danger-sm" *ngIf="pp.activo" (click)="finalizarPagoProgramado(pp)">
                     <mat-icon>stop_circle</mat-icon> Finalizar
                   </button>
@@ -678,6 +691,28 @@
 
           <!-- VISTA MIEMBRO -->
           <div *ngIf="!esDirectiva">
+            <div class="metas-lista mi-metas" *ngIf="misMetasPendientes.length > 0" style="margin-bottom: 20px;">
+              <div class="meta-socio">
+                <div class="meta-socio-header">
+                  <span class="meta-socio-nombre">Lo que me falta</span>
+                  <span class="meta-socio-total">Total: {{ grupo?.moneda }} {{ totalMisMetas() | number:'1.2-2' }}</span>
+                </div>
+                <div class="meta-item" *ngFor="let m of misMetasPendientes">
+                  <mat-icon>{{ m.tipo === 'CARNAVAL' ? 'celebration' : 'inventory_2' }}</mat-icon>
+                  <div class="meta-item-info">
+                    <span>{{ m.nombre }}</span>
+                    <span class="text-muted" *ngIf="m.tipo === 'CARNAVAL'">
+                      Llevo {{ grupo?.moneda }} {{ m.aportado | number:'1.2-2' }} de {{ grupo?.moneda }} {{ m.cupoBs | number:'1.2-2' }}
+                      ({{ (m.avance || 0) * 100 | number:'1.0-0' }}%)
+                    </span>
+                  </div>
+                  <div class="meta-item-right">
+                    <span class="meta-falta">{{ grupo?.moneda }} {{ m.falta | number:'1.2-2' }}</span>
+                    <span class="text-muted" *ngIf="m.cuotaSugerida">{{ grupo?.moneda }} {{ m.cuotaSugerida | number:'1.2-2' }}/mes sugerido</span>
+                  </div>
+                </div>
+              </div>
+            </div>
             <h3 style="margin-bottom: 16px; font-size: 16px; font-weight: 700;">Mis Cuotas Programadas</h3>
             <div class="cuotas-lista" *ngIf="misCuotas.length > 0">
               <div class="cuota-item" *ngFor="let c of misCuotas"
@@ -1149,6 +1184,9 @@
           <button type="button" class="fondo-chip" [class.selected]="ingresoDirectoForm.fondo === 'AHORRO'" (click)="ingresoDirectoForm.fondo = 'AHORRO'">
             <mat-icon>savings</mat-icon> Ahorro
           </button>
+          <button type="button" class="fondo-chip" [class.selected]="ingresoDirectoForm.fondo === 'COMUN'" (click)="ingresoDirectoForm.fondo = 'COMUN'">
+            <mat-icon>groups</mat-icon> Fondo Común
+          </button>
         </div>
       </div>
     </div>
@@ -1195,6 +1233,9 @@
           </button>
           <button type="button" class="fondo-chip" [class.selected]="gastoDirectoForm.fondo === 'MIXTO'" (click)="gastoDirectoForm.fondo = 'MIXTO'">
             <mat-icon>call_split</mat-icon> Mixto
+          </button>
+          <button type="button" class="fondo-chip" [class.selected]="gastoDirectoForm.fondo === 'COMUN'" (click)="gastoDirectoForm.fondo = 'COMUN'">
+            <mat-icon>groups</mat-icon> Fondo Común
           </button>
         </div>
         <div class="fondo-mixto-split" *ngIf="gastoDirectoForm.fondo === 'MIXTO'">
@@ -1642,6 +1683,108 @@
     </div>
     <div class="modal-footer">
       <button class="btn-secondary" (click)="cerrarHistorialPago()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR REPARTO -->
+<div class="modal-overlay" *ngIf="showEditarReparto" (click)="cerrarEditarReparto()">
+  <div class="modal animate-fadeInUp" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Editar reparto: {{ pagoAEditarReparto?.nombre }}</h2>
+      <button class="icon-btn" (click)="cerrarEditarReparto()"><mat-icon>close</mat-icon></button>
+    </div>
+    <div class="modal-body">
+      <p class="text-muted" style="margin-bottom: 14px;">
+        Esto solo afecta las cuotas que todavía están <strong>Pendiente</strong> o
+        <strong>Vencida</strong> — las que ya se pagaron quedan como están.
+      </p>
+      <div class="form-row">
+        <div class="form-group">
+          <label>A Carnaval (Bs) *</label>
+          <input type="number" [(ngModel)]="editarRepartoForm.montoCarnaval" class="form-input">
+        </div>
+        <div class="form-group">
+          <label>A Ahorro (Bs) *</label>
+          <input type="number" [(ngModel)]="editarRepartoForm.montoAhorro" class="form-input">
+        </div>
+      </div>
+      <p class="text-muted">
+        Cuota mensual total: <strong>{{ grupo?.moneda }} {{ (editarRepartoForm.montoCarnaval || 0) + (editarRepartoForm.montoAhorro || 0) | number:'1.2-2' }}</strong>
+      </p>
+
+      <div class="form-group" style="margin-top: 18px;">
+        <label>Meta de Cupo de Carnaval (opcional)</label>
+        <p class="text-muted" style="margin-bottom: 10px;">
+          Si configuras esto, vas a poder ver cuánto le falta a cada socio para completar
+          el cupo y cuánto le tocaría pagar en los meses que quedan.
+        </p>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Cupo (USD)</label>
+          <input type="number" [(ngModel)]="editarRepartoForm.cupoCarnavalUsd" placeholder="270" class="form-input">
+        </div>
+        <div class="form-group">
+          <label>Tipo de cambio (Bs/USD)</label>
+          <input type="number" step="0.01" [(ngModel)]="editarRepartoForm.tipoCambio" placeholder="11.94" class="form-input">
+        </div>
+        <div class="form-group">
+          <label>Meses restantes</label>
+          <input type="number" [(ngModel)]="editarRepartoForm.mesesRestantesCarnaval" placeholder="3" class="form-input">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="cerrarEditarReparto()">Cancelar</button>
+      <button class="btn-primary" (click)="confirmarEditarReparto()" [disabled]="loadingAction">
+        <mat-spinner diameter="18" *ngIf="loadingAction"></mat-spinner>
+        <span>{{ loadingAction ? 'Guardando...' : 'Guardar reparto' }}</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL METAS PENDIENTES -->
+<div class="modal-overlay" *ngIf="showMetasPendientes" (click)="cerrarMetasPendientes()">
+  <div class="modal modal-lg animate-fadeInUp" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Metas pendientes: {{ pagoMetasSeleccionado?.nombre }}</h2>
+      <button class="icon-btn" (click)="cerrarMetasPendientes()"><mat-icon>close</mat-icon></button>
+    </div>
+    <div class="modal-body">
+      <div class="loading-container" *ngIf="loadingMetas">
+        <mat-spinner diameter="32"></mat-spinner>
+      </div>
+      <div class="empty-state" *ngIf="!loadingMetas && metasPendientes.length === 0">
+        <mat-icon class="empty-icon">flag</mat-icon>
+        <p>No hay cupo de carnaval configurado ni pedidos abiertos</p>
+      </div>
+      <div class="metas-lista" *ngIf="!loadingMetas && metasPendientes.length > 0">
+        <div class="meta-socio" *ngFor="let grupo2 of agruparMetasPorSocio(metasPendientes)">
+          <div class="meta-socio-header">
+            <span class="meta-socio-nombre">{{ grupo2.nombreUsuario }}</span>
+            <span class="meta-socio-total">Total: {{ grupo?.moneda }} {{ grupo2.totalFalta | number:'1.2-2' }}</span>
+          </div>
+          <div class="meta-item" *ngFor="let m of grupo2.metas">
+            <mat-icon>{{ m.tipo === 'CARNAVAL' ? 'celebration' : 'inventory_2' }}</mat-icon>
+            <div class="meta-item-info">
+              <span>{{ m.nombre }}</span>
+              <span class="text-muted" *ngIf="m.tipo === 'CARNAVAL'">
+                Lleva {{ grupo?.moneda }} {{ m.aportado | number:'1.2-2' }} de {{ grupo?.moneda }} {{ m.cupoBs | number:'1.2-2' }}
+                ({{ (m.avance || 0) * 100 | number:'1.0-0' }}%)
+              </span>
+            </div>
+            <div class="meta-item-right">
+              <span class="meta-falta">{{ grupo?.moneda }} {{ m.falta | number:'1.2-2' }}</span>
+              <span class="text-muted" *ngIf="m.cuotaSugerida">{{ grupo?.moneda }} {{ m.cuotaSugerida | number:'1.2-2' }}/mes sugerido</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="cerrarMetasPendientes()">Cerrar</button>
     </div>
   </div>
 </div>

@@ -17,6 +17,22 @@ export interface PagoProgramadoResponse {
   montoMulta?: number;
   porcentajeMulta?: number;
   activo: boolean;
+  cupoCarnavalUsd?: number;
+  tipoCambio?: number;
+  mesesRestantesCarnaval?: number;
+  cupoCarnavalBs?: number;
+}
+
+export interface MetaPendienteResponse {
+  usuarioId: number;
+  nombreUsuario: string;
+  tipo: 'CARNAVAL' | 'PEDIDO';
+  nombre: string;
+  aportado?: number;
+  cupoBs?: number;
+  falta: number;
+  cuotaSugerida?: number;
+  avance?: number;
 }
 
 export interface CuotaResponse {
@@ -59,6 +75,16 @@ export class PagoProgramadoService {
 
   crearPagoProgramado(grupoId: number, request: any): Observable<PagoProgramadoResponse> {
     return this.http.post<PagoProgramadoResponse>(`${this.apiUrl}/${grupoId}/pagos-programados`, request);
+  }
+
+  editarReparto(grupoId: number, pagoProgramadoId: number, request: any): Observable<PagoProgramadoResponse> {
+    return this.http.patch<PagoProgramadoResponse>(
+      `${this.apiUrl}/${grupoId}/pagos-programados/${pagoProgramadoId}`, request);
+  }
+
+  obtenerMetasPendientes(grupoId: number, pagoProgramadoId: number): Observable<MetaPendienteResponse[]> {
+    return this.http.get<MetaPendienteResponse[]>(
+      `${this.apiUrl}/${grupoId}/pagos-programados/${pagoProgramadoId}/metas-pendientes`);
   }
 
   obtenerPagosProgramados(grupoId: number): Observable<PagoProgramadoResponse[]> {

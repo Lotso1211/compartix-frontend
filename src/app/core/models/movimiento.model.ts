@@ -2,7 +2,7 @@ export type TipoMovimiento = 'APORTE' | 'GASTO_COMPARTIDO' | 'GASTO_INDIVIDUAL' 
 
 // A qué fondo pertenece un movimiento. Los aportes/ingresos solo usan CARNAVAL o AHORRO
 // (un único fondo); los gastos además admiten MIXTO (repartido entre ambos).
-export type TipoFondo = 'CARNAVAL' | 'AHORRO' | 'MIXTO';
+export type TipoFondo = 'CARNAVAL' | 'AHORRO' | 'MIXTO' | 'COMUN';
 
 export interface Movimiento {
   id: number;

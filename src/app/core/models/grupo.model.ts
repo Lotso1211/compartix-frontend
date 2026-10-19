@@ -32,6 +32,7 @@ export interface SaldoGrupo {
   saldoDisponible: number;
   saldoCarnaval?: number;
   saldoAhorro?: number;
+  saldoComun?: number;
   actualizadoEn: string;
 }
 
