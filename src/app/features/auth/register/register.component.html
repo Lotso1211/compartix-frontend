@@ -132,6 +132,11 @@
           </mat-error>
         </mat-form-field>
 
+        <mat-checkbox formControlName="aceptaTerminos" class="terminos-checkbox">
+          Acepto los <a routerLink="/legal/terminos" target="_blank" class="link" (click)="$event.stopPropagation()">Términos y Condiciones</a>
+          y la <a routerLink="/legal/privacidad" target="_blank" class="link" (click)="$event.stopPropagation()">Política de Privacidad</a>
+        </mat-checkbox>
+
         <button class="btn-primary w-full submit-btn" type="submit" [disabled]="loading">
           <mat-spinner diameter="20" *ngIf="loading"></mat-spinner>
           <mat-icon *ngIf="!loading">person_add</mat-icon>

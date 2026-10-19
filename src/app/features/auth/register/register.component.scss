@@ -180,6 +180,29 @@ form {
   gap: 12px;
 }
 
+.terminos-checkbox {
+  display: block;
+  margin: 6px 0 4px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+
+  ::ng-deep .mdc-checkbox {
+    padding: 6px;
+  }
+  ::ng-deep .mdc-form-field > label {
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  .link {
+    color: var(--primary);
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .link:hover { text-decoration: underline; }
+}
+
 .submit-btn {
   margin-top: 12px;
   height: 52px;

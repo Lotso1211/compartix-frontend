@@ -16,6 +16,10 @@ const routes = [
     loadChildren: () => import('./features/auth/auth.routes').then(m => m.AUTH_ROUTES)
   },
   {
+    path: 'legal',
+    loadChildren: () => import('./features/legal/legal.routes').then(m => m.LEGAL_ROUTES)
+  },
+  {
     path: 'app',
     canActivate: [authGuard],
     loadChildren: () => import('./features/dashboard/dashboard.routes').then(m => m.DASHBOARD_ROUTES)

@@ -7,6 +7,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { AuthService } from '../../../core/services/auth.service';
 import { GOOGLE_CLIENT_ID } from '../../../core/config/google.config';
@@ -31,6 +32,7 @@ declare const google: any;
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
+    MatCheckboxModule,
     MatSnackBarModule
   ],
   templateUrl: './register.component.html',
@@ -58,7 +60,8 @@ export class RegisterComponent implements AfterViewInit {
       email:             ['', [Validators.required, Validators.email]],
       telefono:          [''],
       password:          ['', [Validators.required, passwordStrengthValidator()]],
-      confirmarPassword: ['', Validators.required]
+      confirmarPassword: ['', Validators.required],
+      aceptaTerminos:    [false, Validators.requiredTrue]
     }, { validators: passwordMatchValidator });
   }
 
@@ -86,6 +89,11 @@ export class RegisterComponent implements AfterViewInit {
   }
 
   private loginConGoogle(idToken: string): void {
+    if (!this.form.get('aceptaTerminos')?.value) {
+      this.form.get('aceptaTerminos')?.markAsTouched();
+      this.snackBar.open('Primero acepta los Términos y la Política de Privacidad', 'Cerrar', { duration: 4000 });
+      return;
+    }
     this.loading = true;
     this.authService.loginConGoogle(idToken).subscribe({
       next: () => this.router.navigate(['/app']),
@@ -116,7 +124,7 @@ export class RegisterComponent implements AfterViewInit {
     }
 
     this.loading = true;
-    const { confirmarPassword, ...payload } = this.form.value;
+    const { confirmarPassword, aceptaTerminos, ...payload } = this.form.value;
 
     this.authService.register(payload).subscribe({
       next: () => {

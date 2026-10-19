@@ -198,6 +198,19 @@ form {
       text-decoration: underline;
     }
   }
+
+  .legal-links {
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--text-muted);
+
+    a {
+      color: var(--text-muted);
+      text-decoration: none;
+
+      &:hover { color: var(--primary); text-decoration: underline; }
+    }
+  }
 }
 
 // Material overrides
